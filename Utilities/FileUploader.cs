@@ -99,6 +99,8 @@ namespace IntegrationDevelopmentUtility.Utilities
                 request.VersionMinor = versionMinor;
 
                 versionResponse = iPaaSCallWrapper.UploadFile(systemTypeId, fullFilePath, request, companyToken.AcessToken);
+                if (versionResponse == null)
+                    throw new Exception("No response was returned from the Upload command");
             }
             catch (Exception ex)
             {
