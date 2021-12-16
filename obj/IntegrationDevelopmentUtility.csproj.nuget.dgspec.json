@@ -1,0 +1,118 @@
+{
+  "format": 1,
+  "restore": {
+    "C:\\Users\\marja\\Desktop\\starter point\\For the Video\\SDK\\IntegrationDevelopmentUtility-main\\IntegrationDevelopmentUtility.csproj": {}
+  },
+  "projects": {
+    "C:\\Users\\marja\\Desktop\\starter point\\For the Video\\SDK\\IntegrationDevelopmentUtility-main\\IntegrationDevelopmentUtility.csproj": {
+      "version": "1.0.0",
+      "restore": {
+        "projectUniqueName": "C:\\Users\\marja\\Desktop\\starter point\\For the Video\\SDK\\IntegrationDevelopmentUtility-main\\IntegrationDevelopmentUtility.csproj",
+        "projectName": "IntegrationDevelopmentUtility",
+        "projectPath": "C:\\Users\\marja\\Desktop\\starter point\\For the Video\\SDK\\IntegrationDevelopmentUtility-main\\IntegrationDevelopmentUtility.csproj",
+        "packagesPath": "C:\\Users\\marja\\.nuget\\packages\\",
+        "outputPath": "C:\\Users\\marja\\Desktop\\starter point\\For the Video\\SDK\\IntegrationDevelopmentUtility-main\\obj\\",
+        "projectStyle": "PackageReference",
+        "configFilePaths": [
+          "C:\\Users\\marja\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
+        ],
+        "originalTargetFrameworks": [
+          "netcoreapp3.1"
+        ],
+        "sources": {
+          "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
+          "https://api.nuget.org/v3/index.json": {}
+        },
+        "frameworks": {
+          "netcoreapp3.1": {
+            "targetAlias": "netcoreapp3.1",
+            "projectReferences": {}
+          }
+        },
+        "warningProperties": {
+          "warnAsError": [
+            "NU1605"
+          ]
+        }
+      },
+      "frameworks": {
+        "netcoreapp3.1": {
+          "targetAlias": "netcoreapp3.1",
+          "dependencies": {
+            "Azure.Storage.Common": {
+              "target": "Package",
+              "version": "[12.7.0, )"
+            },
+            "Azure.Storage.Files.Shares": {
+              "target": "Package",
+              "version": "[12.6.0, )"
+            },
+            "Microsoft.OpenApi": {
+              "target": "Package",
+              "version": "[1.2.3, )"
+            },
+            "Microsoft.OpenApi.Readers": {
+              "target": "Package",
+              "version": "[1.2.3, )"
+            },
+            "Newtonsoft.Json": {
+              "target": "Package",
+              "version": "[13.0.1, )"
+            },
+            "RestSharp": {
+              "target": "Package",
+              "version": "[106.13.0, )"
+            },
+            "RestSharp.Serializers.NewtonsoftJson": {
+              "target": "Package",
+              "version": "[106.11.7, )"
+            },
+            "System.CodeDom": {
+              "target": "Package",
+              "version": "[5.0.0, )"
+            },
+            "iPaaS.Integration.SDK": {
+              "target": "Package",
+              "version": "[1.0.0, )"
+            }
+          },
+          "imports": [
+            "net461",
+            "net462",
+            "net47",
+            "net471",
+            "net472",
+            "net48"
+          ],
+          "assetTargetFallback": true,
+          "warn": true,
+          "downloadDependencies": [
+            {
+              "name": "Microsoft.AspNetCore.App.Ref",
+              "version": "[3.1.10, 3.1.10]"
+            },
+            {
+              "name": "Microsoft.NETCore.App.Host.win-x64",
+              "version": "[3.1.21, 3.1.21]"
+            },
+            {
+              "name": "Microsoft.NETCore.App.Ref",
+              "version": "[3.1.0, 3.1.0]"
+            },
+            {
+              "name": "Microsoft.WindowsDesktop.App.Ref",
+              "version": "[3.1.0, 3.1.0]"
+            }
+          ],
+          "frameworkReferences": {
+            "Microsoft.NETCore.App": {
+              "privateAssets": "all"
+            }
+          },
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\6.0.100\\RuntimeIdentifierGraph.json"
+        }
+      }
+    }
+  }
+}

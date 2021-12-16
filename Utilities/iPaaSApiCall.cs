@@ -187,6 +187,8 @@ namespace IntegrationDevelopmentUtility.Utilities
                     StandardUtilities.WriteToConsole($"An error was returned after the call to {_url}", StandardUtilities.Severity.ERROR);
                     StandardUtilities.WriteToConsole(errorMessage, StandardUtilities.Severity.ERROR);
                 }
+                else
+                    ;
                 return false;
             }
 

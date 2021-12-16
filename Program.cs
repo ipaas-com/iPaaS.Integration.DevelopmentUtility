@@ -24,8 +24,8 @@ namespace IntegrationDevelopmentUtility
             //Settings.LoggerUrl = "https://devapi.ipaas.com/listener";
             //Settings.SSOUrl = "https://devapi.ipaas.com/sso";
 
-            //Settings.AzureFileShareConnectionString = "DefaultEndpointsProtocol=https;AccountName=integrationdevshare;AccountKey="key"==;EndpointSuffix=core.windows.net";
-
+            //Settings.AzureFileShareConnectionString = "DefaultEndpointsProtocol=https;AccountName=integrationdevshare;AccountKey===;EndpointSuffix=core.windows.net";
+            //20Gy5XDKzIR8PkmpQGYQrFjIkbtfVwMM/yD1NF5z8Sfd9PH9JlGbdLz4F8t3b37eo/RkmM3VgZie20tQS70AJA
             //Load the default settings
             Settings.Instance = JsonConvert.DeserializeObject<Settings>(File.ReadAllText(Directory.GetCurrentDirectory() + @"\appsettings.json"));
 

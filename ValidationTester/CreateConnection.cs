@@ -3,6 +3,7 @@ using IntegrationDevelopmentUtility.Utilities;
 using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace IntegrationDevelopmentUtility.ValidationTester
 {
@@ -34,7 +35,8 @@ namespace IntegrationDevelopmentUtility.ValidationTester
 
             // Populate each of these objects: CallWrapper, Settings, TranslationUtilities, CustomFieldHandler
             connection.Settings = assemblyHandler.CreateInstance<Integration.Abstract.Settings>("Settings");
-            connection.Settings.SettingsDictionary = settings.Settings;
+            foreach (var kvp in settings.Settings)
+                connection.Settings.SettingsDictionary.TryAdd(kvp.Key, kvp.Value);
 
             // Dont be lazy and comment more please
             connection.TranslationUtilities = assemblyHandler.CreateInstance<Integration.Abstract.TranslationUtilities>("TranslationUtilities");
@@ -70,8 +72,8 @@ namespace IntegrationDevelopmentUtility.ValidationTester
             connection.Settings.WebhookApiKey = settings.WebhookApiKey;
 
             // Now we register the delegate functions
-            connection.DataHandlerFunction = CreateConnection.ExternalDataHandler;
-            connection.ClapbackTrackerFunction = RegisterClapback_Delegate;
+            connection.DataHandlerFunctionAsync = CreateConnection.ExternalDataHandlerAsync;
+            connection.ClapbackTrackerFunctionAsync = RegisterClapback_Delegate;
 
             connection.Logger = new Integration.Abstract.Helpers.Logger();
             connection.Logger.Logger_Technical = LogTechEvent_Delegate;
@@ -106,20 +108,29 @@ namespace IntegrationDevelopmentUtility.ValidationTester
             //settings.SettingsDictionary.TryAdd("Products_URL", context.DatabaseSettings.ApiUrls.Tagge_URL);
             //settings.SettingsDictionary.TryAdd("Transactions_URL", context.DatabaseSettings.ApiUrls.Motti_URL);
             if (settings.SettingsDictionary == null)
+            {
+                //settings.SettingsDictionary = new System.Collections.Concurrent.ConcurrentDictionary<string, string>();
                 settings.SettingsDictionary = new Dictionary<string, string>();
+            }
+                
 
             settings.SettingsDictionary.TryAdd("Integrations_URL", Utilities.Settings.Instance.IntegrationUrl);
             settings.SettingsDictionary.TryAdd("SSO_URL", Utilities.Settings.Instance.SSOUrl);
             settings.SettingsDictionary.TryAdd("IPaaSApi_Token", apiToken);
             settings.SettingsDictionary.TryAdd("Hook_URL", Utilities.Settings.Instance.HookUrl);
+
+            settings.SettingsDictionary.TryAdd("Customers_URL", Utilities.Settings.Instance.CustomerURL);
+            settings.SettingsDictionary.TryAdd("GiftCards_URL", Utilities.Settings.Instance.GiftCardUrl);
+            settings.SettingsDictionary.TryAdd("Products_URL", Utilities.Settings.Instance.ProductUrl);
+            settings.SettingsDictionary.TryAdd("Transactions_URL", Utilities.Settings.Instance.TransactionUrl);
         }
 
-        public static void ExternalDataHandler(Integration.Abstract.Helpers.TransferRequest transferRequest)
+        public static async Task ExternalDataHandlerAsync(Integration.Abstract.Helpers.TransferRequest transferRequest)
         {
             ;
         }
 
-        public static void RegisterClapback_Delegate(long systemId, int mappingCollectionTypeId, string id, int directionId)
+        public static async Task RegisterClapback_Delegate(long systemId, int mappingCollectionTypeId, string id, int directionId)
         {
             ;
         }
