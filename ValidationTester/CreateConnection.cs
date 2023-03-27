@@ -10,7 +10,7 @@ namespace IntegrationDevelopmentUtility.ValidationTester
     public class CreateConnection
     {
         //This call is responsible for creating an empty, ready-to-use connection. That includes loading the external assembly, instantiating all the types, 
-        //and assigning delegate function references. 
+        //  and assigning delegate function references. 
         //It does NOT make any external calls. That should all be handled in the ConnectionManager.
         public static async Task<Tuple<Integration.Abstract.Connection, object>> Create(string assemblyPath, string dllNamespace, SubscriptionResponse settings, FullToken apiToken, long iPaaSSystemId)
         {
