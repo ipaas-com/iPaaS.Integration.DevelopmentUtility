@@ -1,5 +1,7 @@
-# iPaaSExternalIntegrationHelper
-Provide a set of tools to assist in the development of third-party integrations using the iPaaS.com platform
+# iPaaS.com Integration Development Utility
+Provides a set of tools to assist in the development of third-party integrations using the iPaaS.com platform.
+
+It is recommended to start with a new integration project.  If you have not done so yet, please review [iPaaS.com Integration Template](https://github.com/ipaas-com/iPaaS.Integration.Template) to get started.
 
 - [iPaaSExternalIntegrationHelper](#ipaasexternalintegrationhelper)
   * [Overview](#overview)
