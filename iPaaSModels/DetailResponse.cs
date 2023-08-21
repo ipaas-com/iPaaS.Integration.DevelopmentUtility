@@ -48,7 +48,7 @@ namespace IntegrationDevelopmentUtility.iPaaSModels
                 Details = Details.Substring(0, Details.Length - 9);
             }
             else if (Details.EndsWith("(ERROR)"))
-            {
+            { 
                 severity = Utilities.StandardUtilities.Severity.ERROR;
                 severityPrint = "ERROR  ";
                 Details = Details.Substring(0, Details.Length - 7);

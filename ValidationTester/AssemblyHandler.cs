@@ -16,7 +16,8 @@ namespace IntegrationDevelopmentUtility.ValidationTester
             set { _externalNamespace = value; }
         }
 
-        private Assembly a;
+        //Temporarily made public
+        public Assembly a;
 
         public AssemblyHandler(string assemblyPath)
         {

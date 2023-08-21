@@ -1,5 +1,6 @@
 ﻿using IntegrationDevelopmentUtility.iPaaSModels;
 using IntegrationDevelopmentUtility.Utilities;
+using Microsoft.Extensions.Azure;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -18,6 +19,8 @@ namespace IntegrationDevelopmentUtility.ValidationTester
             // application domain.
             var assemblyHandler = new AssemblyHandler(assemblyPath);
 
+            Program.AssemblyA = assemblyHandler.a;
+
             // If we don't have the namespace supplied, guess at it. See the comments on this method for its (severe) limitations
             if (string.IsNullOrEmpty(dllNamespace))
                 assemblyHandler.DetermineNamespaceByClassName("Connection");
@@ -30,6 +33,7 @@ namespace IntegrationDevelopmentUtility.ValidationTester
             // First assign the basic external and internal settings
             connection.ExternalSystemId = settings.Id;
             connection.ExternalSystemType = settings.IntegrationId;
+            connection.ExternalIntegrationVersionId = settings.IntegrationVersionId;
             connection.IPaaSApiToken = apiToken.AcessToken;
             connection.IPaaSSystemId = iPaaSSystemId;
 
@@ -115,6 +119,7 @@ namespace IntegrationDevelopmentUtility.ValidationTester
 
 
             settings.SettingsDictionary.TryAdd("Integrations_URL", Utilities.Settings.Instance.SubscriptionUrl);
+            settings.SettingsDictionary.TryAdd("Subscriptions_URL", Utilities.Settings.Instance.SubscriptionUrl);
             settings.SettingsDictionary.TryAdd("SSO_URL", Utilities.Settings.Instance.SSOUrl);
             settings.SettingsDictionary.TryAdd("IPaaSApi_Token", apiToken);
             settings.SettingsDictionary.TryAdd("Hook_URL", Utilities.Settings.Instance.HookUrl);

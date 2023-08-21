@@ -7,9 +7,12 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Numerics;
+using System.Reflection;
+using System.Reflection.Metadata.Ecma335;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
+using static Azure.Core.HttpHeader;
 
 namespace IntegrationDevelopmentUtility
 {
@@ -17,6 +20,7 @@ namespace IntegrationDevelopmentUtility
     {
         public static bool OperationCancelled = false;
         public static bool OperationCompleted = false;
+        public static Assembly AssemblyA;
 
         static async Task Main(string[] args)
         {
@@ -41,6 +45,28 @@ namespace IntegrationDevelopmentUtility
                 StandardUtilities.WriteToConsole("Running this product against the Production environment is not supported.", StandardUtilities.Severity.LOCAL_ERROR);
                 return;
             }
+
+            //ZOMBIE TESTING!
+            //load all the dlls before we add a resolution handler
+            //AssemblyA = Assembly.LoadFrom(Settings.Instance.IntegrationFileLocation);
+            //var assemblyList = new List<string>();
+            //assemblyList.Add("Shopify.Data.EmbeddedAssemblies.GraphQL.Client.Abstractions.dll");
+            //assemblyList.Add("Shopify.Data.EmbeddedAssemblies.GraphQL.Client.Abstractions.Websocket.dll");
+            //assemblyList.Add("Shopify.Data.EmbeddedAssemblies.GraphQL.Client.dll");
+            //assemblyList.Add("Shopify.Data.EmbeddedAssemblies.GraphQL.Client.Serializer.Newtonsoft.dll");
+            //assemblyList.Add("Shopify.Data.EmbeddedAssemblies.GraphQL.dll");
+            //assemblyList.Add("Shopify.Data.EmbeddedAssemblies.GraphQL.Primitives.dll");
+
+            //foreach (var assemblyName2 in assemblyList)
+            //{
+            //    Console.WriteLine($"Loading {assemblyName2}");
+            //    var assembly = Assembly.Load(assemblyName2);
+            //    additional.Add(assembly.FullName, assembly);
+            //    Console.WriteLine($"Complete {assemblyName2}");
+            //}
+
+            //now we can add our handler
+            //AppDomain.CurrentDomain.AssemblyResolve += CurrentDomain_AssemblyResolve;
 
             try
             {
@@ -146,7 +172,7 @@ namespace IntegrationDevelopmentUtility
                         }
 
                         //Clear the console so the hook will have clean output
-                        Console.Clear();
+                        //Console.Clear();
 
                         //Spawn the file uploader to a new thread
                         var thread = new Thread(() => FileUploader.UploadFile(integrationId, uploadFileName));
@@ -229,7 +255,7 @@ namespace IntegrationDevelopmentUtility
                             continue;
                         }
 
-                        await ValidationTester.DevelopmentTester.ExecuteTestCase(parsed[1], Int64.Parse(parsed[2]));
+                          await ValidationTester.DevelopmentTester.ExecuteTestCase(parsed[1], Int64.Parse(parsed[2]));
                     }
                     else if (parsed[0].ToUpper() == "APIKEYS")
                     {
@@ -443,6 +469,104 @@ namespace IntegrationDevelopmentUtility
             //Console.WriteLine("UnobservedTaskExceptionHandler has been reached.");
 
             e.SetObserved(); // We must set the exception as observed so that it isn't re-thrown
+        }
+
+        private static IDictionary<string, Assembly> additional = new Dictionary<string, Assembly>();
+
+        //VB:05.10.23 - This is just a test! I am trying to see if we can load an assembly without having the packages available here (or in c3po!)
+        static Assembly CurrentDomain_AssemblyResolve(object sender, ResolveEventArgs args)
+        {
+            Console.WriteLine($"RequestFor: {args.Name} RequestingAssembly {args.RequestingAssembly.FullName}");
+
+            var requestName = args.Name;
+            Assembly a1 = Assembly.GetExecutingAssembly();
+            if (Program.AssemblyA != null)
+            {
+                requestName = requestName.Substring(0, requestName.IndexOf(","));
+                requestName = "Shopify.Data.EmbeddedAssemblies." + requestName + ".dll";
+                a1 = Program.AssemblyA;
+            }
+            Stream s = a1.GetManifestResourceStream(requestName);
+            if(s == null)
+            {
+                Console.WriteLine($"Unable to find {requestName} in {a1.FullName}");
+                return null;
+            }
+            byte[] block = new byte[s.Length];
+            s.Read(block, 0, block.Length);
+            Assembly a2 = Assembly.Load(block);
+            return a2;
+
+            //Assembly res;
+            //additional.TryGetValue(args.Name, out res);
+            //return res;
+
+            if (additional.ContainsKey(args.Name))
+                return additional[args.Name];   
+
+            var assemblyList = new List<string>();
+            assemblyList.Add("Shopify.Data.EmbeddedAssemblies.GraphQL.Client.Abstractions.dll");
+            assemblyList.Add("Shopify.Data.EmbeddedAssemblies.GraphQL.Client.Abstractions.Websocket.dll");
+            assemblyList.Add("Shopify.Data.EmbeddedAssemblies.GraphQL.Client.dll");
+            assemblyList.Add("Shopify.Data.EmbeddedAssemblies.GraphQL.Client.Serializer.Newtonsoft.dll");
+            assemblyList.Add("Shopify.Data.EmbeddedAssemblies.GraphQL.dll");
+            assemblyList.Add("Shopify.Data.EmbeddedAssemblies.GraphQL.Primitives.dll");
+
+            var argNameClean = args.Name.Substring(0, args.Name.IndexOf(","));
+            argNameClean += ".dll";
+
+            if (additional.ContainsKey(argNameClean))
+            {
+                return additional[argNameClean];
+            }
+
+            var myAssembly = args.RequestingAssembly;
+            if (Program.AssemblyA != null)
+                myAssembly = Program.AssemblyA;
+
+            var assemblyName = assemblyList.Find(x => x.EndsWith(argNameClean));
+            if (assemblyName == null)
+                return null;
+
+            //foreach (var resource in myAssembly.GetManifestResourceNames())
+            //    Console.WriteLine("IDU:: Resource: " + resource);
+
+            using (var stream = myAssembly.GetManifestResourceStream(assemblyName))
+            {
+                if (stream == null)
+                {
+                    Console.WriteLine($"Unable to load assembly with path: {assemblyName} - RequestingAssembly {args.RequestingAssembly.FullName}, UsedAssembly: {myAssembly.FullName}");
+                    return null;
+                    //continue;
+                }
+                else
+                    Console.WriteLine($"Loaded assembly with path: {assemblyName} - RequestingAssembly {args.RequestingAssembly.FullName}, UsedAssembly: {myAssembly.FullName}");
+
+                var assemblyData = new Byte[stream.Length];
+                stream.Read(assemblyData, 0, assemblyData.Length);
+                //if (assemblyList[assemblyList.Count - 1] == assemblyName)
+                return Assembly.Load(assemblyData); //If we are on the last entry, return it
+                                                    //else
+                                                    //  Assembly.Load(assemblyData);
+            }
+
+
+
+            //var assemblyList = new List<string>();
+            //                  Shopify.Data.EmbeddedAssemblies.GraphQL.Client.Abstractions.dll
+            //assemblyList.Add("Shopify.Data.EmbeddedAssemblies.GraphQL.Client.Abstactions.dll");
+            //assemblyList.Add("Shopify.Data.EmbeddedAssemblies.GraphQL.Client.Abstactions.Websocket.dll");
+            //assemblyList.Add("Shopify.Data.EmbeddedAssemblies.GraphQL.Client.dll");
+            //assemblyList.Add("Shopify.Data.EmbeddedAssemblies.GraphQL.Client.Serializer.Newtonsoft.dll");
+            //assemblyList.Add("Shopify.Data.EmbeddedAssemblies.GraphQL.dll");
+            //                  Shopify.Data.EmbeddedAssemblies.GraphQL.Primitives.dll
+            //assemblyList.Add("Shopify.Data.EmbeddedAssemblies.GraphQL.Primatives.dll");
+
+            //foreach (var assemblyName in assemblyList)
+            //{
+            //}
+
+            return null;
         }
     }
 }

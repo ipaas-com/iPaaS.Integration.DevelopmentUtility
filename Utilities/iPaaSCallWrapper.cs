@@ -162,7 +162,7 @@ namespace IntegrationDevelopmentUtility.Utilities
 
         public static TopicSubscriptionResponse TopicSubscriptionCreate(TopicSubscriptionRequest request, FullToken companyToken)
         {
-
+            //TODO: Change this to  iPaaSApiCall.ApiType.Logger once that is pushed to staging
             var apiCall = new iPaaSApiCall("v2/TopicSubscription", companyToken, iPaaSApiCall.ApiType.Subscription, typeof(TopicSubscriptionResponse), RestSharp.Method.Post);
 
             apiCall.AddBodyParameter(request);
@@ -174,7 +174,7 @@ namespace IntegrationDevelopmentUtility.Utilities
 
         public static void TopicSubscriptionDelete(string topicName, FullToken companyToken)
         {
-
+            //TODO: Change this to  iPaaSApiCall.ApiType.Logger once that is pushed to staging
             var apiCall = new iPaaSApiCall("v2/TopicSubscription/{topicName}", companyToken, iPaaSApiCall.ApiType.Subscription, null, RestSharp.Method.Delete);
             apiCall.AddParameter("topicName", topicName, RestSharp.ParameterType.UrlSegment);
 

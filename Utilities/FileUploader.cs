@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading;
 
@@ -96,23 +97,6 @@ namespace IntegrationDevelopmentUtility.Utilities
             //Pull the token for this system
             var companyToken = StandardUtilities.ApiTokenForSystem(matchingSystem.Id);
 
-            SubscriptionResponse matchSystem;
-            //Find the version, if there are any. It may be that there are no versions yet.
-            if (versionResponse != null)
-            {
-                //System updated hooks need a valid system id for permission purposes. So we just grab the first system.
-                matchSystem = Settings.Instance.Systems.Find(x => x.IntegrationId == integrationId && x.IntegrationVersionId == versionResponse.Id);
-                if (matchSystem == null)
-                {
-                    StandardUtilities.WriteToConsole($"You must have access to at least one system of the requested system type version to upload a file. (Integration Id {integrationId}, Version Id {versionResponse.Id})", StandardUtilities.Severity.LOCAL_ERROR);
-                    Program.OperationCancelled = true;
-                    Program.OperationCompleted = true;
-                    return;
-                }
-            }
-            else
-                matchSystem = matchingSystem;
-
             try
             {
                 var request = new VersionRequest();
@@ -137,6 +121,24 @@ namespace IntegrationDevelopmentUtility.Utilities
                 Program.OperationCompleted = true;
                 return;
             }
+
+
+            SubscriptionResponse matchSystem;
+            //Find the version, if there are any. It may be that there are no versions yet.
+            if (versionResponse != null)
+            {
+                //System updated hooks need a valid system id for permission purposes. So we just grab the first system.
+                matchSystem = Settings.Instance.Systems.Find(x => x.IntegrationId == integrationId && x.IntegrationVersionId == versionResponse.Id);
+                if (matchSystem == null)
+                {
+                    StandardUtilities.WriteToConsole($"You must have access to at least one system of the requested system type version to upload a file. (Integration Id {integrationId}, Version Id {versionResponse.Id})", StandardUtilities.Severity.LOCAL_ERROR);
+                    Program.OperationCancelled = true;
+                    Program.OperationCompleted = true;
+                    return;
+                }
+            }
+            else
+                matchSystem = matchingSystem;
 
             var fileName = Path.GetFileName(fullFilePath);
 

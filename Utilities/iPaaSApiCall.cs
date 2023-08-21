@@ -15,10 +15,13 @@ namespace IntegrationDevelopmentUtility.Utilities
         {
             Hook,
             Subscription, //Formerly called Integration
-            Logger,
+            Logger, //AKA listener, LT319
             Product,
             SSO,
-            Integrator
+            Integrator,
+            GiftCard,
+            Customer,
+            Transaction
         }
 
         private string _url;
@@ -113,6 +116,12 @@ namespace IntegrationDevelopmentUtility.Utilities
                 baseUrl = Settings.Instance.SubscriptionUrl;
             else if (_api == ApiType.Product)
                 baseUrl = Settings.Instance.ProductUrl;
+            else if (_api == ApiType.Customer)
+                baseUrl = Settings.Instance.CustomerURL;
+            else if (_api == ApiType.GiftCard)
+                baseUrl = Settings.Instance.GiftCardUrl;
+            else if (_api == ApiType.Transaction)
+                baseUrl = Settings.Instance.TransactionUrl;
             else
                 baseUrl = Settings.Instance.SSOUrl;
 
