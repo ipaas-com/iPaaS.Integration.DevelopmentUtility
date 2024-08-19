@@ -29,6 +29,10 @@ namespace IntegrationDevelopmentUtility.Utilities
         public string SSOUrl;
         [JsonProperty("subscription_url")]
         public string SubscriptionUrl;
+        [JsonProperty("employee_url")]
+        public string EmployeeUrl;
+        [JsonProperty("message_url")]
+        public string MessageUrl;
 
         //If you are logging with a user that has access to multiple companies, the login process can be slow. This allows you to specify a single company to use, to speed up the login process.
         [JsonProperty("company_id")]
@@ -64,6 +68,8 @@ namespace IntegrationDevelopmentUtility.Utilities
         public List<CompanyInfoResponse> Companies = new List<CompanyInfoResponse>();
 
         public List<CompanyInfoResponse> IntegratorCompanies = new List<CompanyInfoResponse>();
+
+        public List<CompanyInfoResponse> MISPCompanies = new List<CompanyInfoResponse>();
 
         public List<SubscriptionResponse> Systems = new List<SubscriptionResponse>();
 

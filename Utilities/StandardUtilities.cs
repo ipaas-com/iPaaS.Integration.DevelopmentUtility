@@ -173,6 +173,7 @@ namespace IntegrationDevelopmentUtility.Utilities
             Settings.Instance.AdminCompanies = companyResponse.AdminCompanies;
             Settings.Instance.Companies = companyResponse.Companies;
             Settings.Instance.IntegratorCompanies = companyResponse.Integrators;
+            Settings.Instance.MISPCompanies = companyResponse.MISPs;
 
             //Process any admin companies
             foreach (var company in companyResponse.AdminCompanies)
@@ -195,6 +196,19 @@ namespace IntegrationDevelopmentUtility.Utilities
                 }
                 else
                     existingCompany.IsIntegrator = true;
+            }
+
+            //Ensure that each MISP company is in the normal company list (and is flagged as such)
+            foreach (var company in companyResponse.MISPs)
+            {
+                var existingCompany = Settings.Instance.Companies.Find(x => x.Id == company.Id);
+                if (existingCompany == null)
+                {
+                    company.IsMISP = true;
+                    Settings.Instance.Companies.Add(company);
+                }
+                else
+                    existingCompany.IsMISP = true;
             }
 
             //If a company id was specified in the settints, remove all companies that are not that one.
@@ -268,6 +282,8 @@ namespace IntegrationDevelopmentUtility.Utilities
             //Now we need to loop through each system we identified and gather more specific seettings
             foreach (var system in allSystems)
             {
+                //Console.WriteLine($"Getting subscription: {system.Id}");
+
                 var systemSetting = iPaaSCallWrapper.Subscription(Convert.ToString(system.Id), company.CompanySpecificFullToken);
 
                 //Save the systems to our settings model

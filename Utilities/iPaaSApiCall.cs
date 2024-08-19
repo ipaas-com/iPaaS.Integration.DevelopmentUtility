@@ -200,6 +200,8 @@ namespace IntegrationDevelopmentUtility.Utilities
             {
                 StandardUtilities.WriteToConsole($"An error occurred on the call to {_url}", StandardUtilities.Severity.ERROR);
                 StandardUtilities.WriteToConsole(ex.Message, StandardUtilities.Severity.ERROR);
+                if(ex.InnerException != null)
+                    StandardUtilities.WriteToConsole($"   InnerException: {ex.InnerException.Message}", StandardUtilities.Severity.ERROR);
                 return null;
             }
 
