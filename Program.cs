@@ -45,6 +45,7 @@ namespace IntegrationDevelopmentUtility
                 StandardUtilities.WriteToConsole("Running this product against the Production environment is not supported.", StandardUtilities.Severity.LOCAL_ERROR);
                 return;
             }
+            ;
 
             //ZOMBIE TESTING!
             //load all the dlls before we add a resolution handler
@@ -363,6 +364,16 @@ namespace IntegrationDevelopmentUtility
                                 ValidateURL(ipaasURL, "transaction_url");
                                 suffix = "Transaction";
                                 break;
+                            case "emplyoee":
+                                ipaasURL = Settings.Instance.TransactionUrl + swaggerPath;
+                                ValidateURL(ipaasURL, "employee_url");
+                                suffix = "Employee";
+                                break;
+                            case "message":
+                                ipaasURL = Settings.Instance.TransactionUrl + swaggerPath;
+                                ValidateURL(ipaasURL, "message_url");
+                                suffix = "Message";
+                                break;
                             case "all":
                                 //First validate the URLs
                                 ValidateURL(Settings.Instance.CustomerURL, "customer_url");
@@ -371,6 +382,8 @@ namespace IntegrationDevelopmentUtility
                                 ValidateURL(Settings.Instance.ProductUrl, "product_url");
                                 ValidateURL(Settings.Instance.SubscriptionUrl, "subscription_url");
                                 ValidateURL(Settings.Instance.TransactionUrl, "transaction_url");
+                                ValidateURL(Settings.Instance.MessageUrl, "message_url");
+                                ValidateURL(Settings.Instance.EmployeeUrl, "employee_url");
 
                                 //
                                 Console.WriteLine("Generating models for the Customer API");
