@@ -50,16 +50,42 @@ namespace IntegrationDevelopmentUtility.Utilities
             return response;
         }
 
-        public static UserCompanyResponse Companies(string user)
+        public static UserCompanyResponse_Separated Companies(string user)
         {
-            var apiCall = new iPaaSApiCall("/v2/User/{id}/Companies", Utilities.Settings.Instance.DefaultFullToken, iPaaSApiCall.ApiType.SSO, typeof(UserCompanyResponse), RestSharp.Method.Get);
+            var apiCall = new iPaaSApiCall("/v2/User/{id}/Companies", Utilities.Settings.Instance.DefaultFullToken, iPaaSApiCall.ApiType.SSO, typeof(List<UserCompanyResponse>), RestSharp.Method.Get);
 
             apiCall.AddParameter("id", user, RestSharp.ParameterType.UrlSegment);
 
             var taskLogin = Task.Run(async () => await apiCall.ProcessRequest());
-            var response = (UserCompanyResponse)taskLogin.GetAwaiter().GetResult();
+            var response = (List<UserCompanyResponse>)taskLogin.GetAwaiter().GetResult();
 
-            return response;
+            //This is to handle a change in the K2SO API. Previously it was outputting in the format defined in UserCompanyResponse_Separated. Now it returns the format in UserCompanyResponse
+            // as a list. The differnce is that the former had a separated set of companies by type. The latter has a single list with a Designations dictionary. To speed up the switch over,
+            //  we preserve the old format and provide the code below to convert the old to new.
+            var responseSeparated = new UserCompanyResponse_Separated();
+
+            //Add everyone to the company list
+            foreach (var company in response)
+                responseSeparated.Companies.Add(new CompanyInfoResponse(company, "Company"));
+
+            var adminCompanies = response.FindAll(x => x.Designations.ContainsValue("Admin"));
+            foreach(var adminCompany in adminCompanies)
+                responseSeparated.AdminCompanies.Add(new CompanyInfoResponse(adminCompany, "Admin"));
+
+            var mispCompanies = response.FindAll(x => x.Designations.ContainsValue("MiSP"));
+            foreach (var mispCompany in mispCompanies)
+                responseSeparated.MISPs.Add(new CompanyInfoResponse(mispCompany, "MiSP"));
+
+            var techCompanies = response.FindAll(x => x.Designations.ContainsValue("Tech Partner"));
+            foreach (var techCompany in techCompanies)
+                responseSeparated.TechPartners.Add(new CompanyInfoResponse(techCompany, "Tech Partner"));
+
+            var integratorCompanies = response.FindAll(x => x.Designations.ContainsValue("Integrator"));
+            foreach (var integratorCompany in integratorCompanies)
+                responseSeparated.Integrators.Add(new CompanyInfoResponse(integratorCompany, "Integrator"));
+
+
+            return responseSeparated;
         }
 
         //Save persistent data
