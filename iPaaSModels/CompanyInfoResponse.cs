@@ -37,5 +37,19 @@ namespace IntegrationDevelopmentUtility.iPaaSModels
         public List<SubscriptionGetAllResponse> Systems;
 
         public bool IsIntegrator { get; set; }
+
+        public CompanyInfoResponse()
+        {
+
+        }
+
+        public CompanyInfoResponse(UserCompanyResponse userCompanyResponse, string designation)
+        {
+            this.Id = userCompanyResponse.Id;
+            this.Name = userCompanyResponse.Name;
+            this.Logo = userCompanyResponse.Logo;
+            this.Designation = designation;
+            this.User_Type = userCompanyResponse.UserTypeId;
+        }
     }
 }
