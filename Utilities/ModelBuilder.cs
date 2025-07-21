@@ -87,12 +87,12 @@ namespace IntegrationDevelopmentUtility.Utilities
                 }
                 catch(Exception ex1)
                 {
-                    Console.WriteLine($"{ex1.Message} while processing the {endpointName} api");
+                    StandardUtilities.WriteToConsole($"{ex1.Message} while processing the {endpointName} api", StandardUtilities.Severity.ERROR);
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine(ex.Message);
+                StandardUtilities.WriteToConsole(ex.Message, StandardUtilities.Severity.ERROR);
             }
         }
 

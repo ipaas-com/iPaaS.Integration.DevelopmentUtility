@@ -88,6 +88,116 @@ namespace IntegrationDevelopmentUtility.Utilities
             return responseSeparated;
         }
 
+
+        public static List<DynamicFormulaResponse> DynamicFormulas(string systemTypeVersion, FullToken companyToken)
+        {
+            var filter = $"SystemTypeVersionId={systemTypeVersion}";
+
+            //Note: these are v1 on the integrator api and v2 on Tarkin
+            var apiCall = new iPaaSApiCall("/v1/DynamicFormulas", companyToken, iPaaSApiCall.ApiType.Integrator, typeof(List<DynamicFormulaResponse>), RestSharp.Method.Get);
+            apiCall.AddParameter("filter", filter, RestSharp.ParameterType.QueryString); //Pass this as a param so that it will handle encoding for us.
+
+            var taskLogin = Task.Run(async () => await apiCall.ProcessRequest());
+            var response = (List<DynamicFormulaResponse>)taskLogin.GetAwaiter().GetResult();
+
+            return response;
+        }
+
+        public static DynamicFormulaResponse DynamicFormulaCreate(DynamicFormulaRequest request, FullToken companyToken)
+        {
+            //Note: these are v1 on the integrator api and v2 on Tarkin
+            var apiCall = new iPaaSApiCall("/v1/DynamicFormula", companyToken, iPaaSApiCall.ApiType.Integrator, typeof(DynamicFormulaResponse), RestSharp.Method.Post);
+
+            apiCall.AddBodyParameter(request);
+
+            var taskLogin = Task.Run(async () => await apiCall.ProcessRequest());
+            var response = (DynamicFormulaResponse)taskLogin.GetAwaiter().GetResult();
+
+            return response;
+        }
+
+        public static DynamicFormulaResponse DynamicFormulaUpdate(DynamicFormulaRequest request, FullToken companyToken, long id)
+        {
+            //Note: these are v1 on the integrator api and v2 on Tarkin
+            var apiCall = new iPaaSApiCall("/v1/DynamicFormula/{id}", companyToken, iPaaSApiCall.ApiType.Integrator, typeof(DynamicFormulaResponse), 
+                RestSharp.Method.Put);
+
+            apiCall.AddParameter("id", id, RestSharp.ParameterType.UrlSegment);
+            apiCall.AddBodyParameter(request);
+
+            var taskLogin = Task.Run(async () => await apiCall.ProcessRequest());
+            var response = (DynamicFormulaResponse)taskLogin.GetAwaiter().GetResult();
+
+            return response;
+        }
+
+        /// <summary>
+        /// Note that this method does not return the field description
+        /// </summary>
+        /// <param name="filters"></param>
+        /// <param name="systemToken"></param>
+        /// <returns></returns>
+        public static List<FieldGetAllResponse> FieldsGetAll(string filters, FullToken systemToken)
+        {
+            var url = "/v1/Integration/Fields";
+            if (!string.IsNullOrEmpty(filters))
+                url += $"?filter={System.Net.WebUtility.UrlEncode(filters)}";
+
+            var apiCall = new iPaaSApiCall(url, systemToken, iPaaSApiCall.ApiType.Integrator, typeof(List<FieldGetAllResponse>), RestSharp.Method.Get);
+
+            var taskLogger = Task.Run(async () => await apiCall.ProcessRequest());
+            var response = (List<FieldGetAllResponse>)taskLogger.GetAwaiter().GetResult();
+
+            return response;
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="filters"></param>
+        /// <param name="systemToken"></param>
+        /// <returns></returns>
+        public static List<LookupResponse> FieldsLookup(string filters, FullToken systemToken)
+        {
+            var url = "/v2/Lookup/Field";
+            if (!string.IsNullOrEmpty(filters))
+                url += $"?filter={System.Net.WebUtility.UrlEncode(filters)}";
+
+            var apiCall = new iPaaSApiCall(url, systemToken, iPaaSApiCall.ApiType.Subscription, typeof(List<LookupResponse>), RestSharp.Method.Get);
+
+            var taskLogger = Task.Run(async () => await apiCall.ProcessRequest(true));
+            var response = (List<LookupResponse>)taskLogger.GetAwaiter().GetResult();
+
+            return response;
+        }
+
+        public static List<LookupResponse> Integrations(FullToken companyToken)
+        {
+            var apiCall = new iPaaSApiCall("/v2/Lookup/Integration?sortBy=Name", companyToken, iPaaSApiCall.ApiType.Subscription, typeof(List<LookupResponse>), RestSharp.Method.Get);
+
+            //Sometimes this call does returns 401s (e.g. in the event we are an admin but do not have specific access to the given company)
+            //Do not display those error messages
+            apiCall.SuppressError = true;
+
+            var taskLogin = Task.Run(async () => await apiCall.ProcessRequest());
+            var response = (List<LookupResponse>)taskLogin.GetAwaiter().GetResult();
+
+            return response;
+        }
+
+        public static MappingCollectionResponse MappingCollectionGet(long mappingCollectionId, FullToken systemToken)
+        {
+            var apiCall = new iPaaSApiCall("/v2/MappingCollection/{id}", systemToken, iPaaSApiCall.ApiType.Subscription, typeof(MappingCollectionResponse), RestSharp.Method.Get);
+
+            apiCall.AddParameter("id", mappingCollectionId, RestSharp.ParameterType.UrlSegment);
+
+            var taskLogger = Task.Run(async () => await apiCall.ProcessRequest());
+            var response = (MappingCollectionResponse)taskLogger.GetAwaiter().GetResult();
+
+            return response;
+        }
+
+
         //Save persistent data
         public static List<PersistentDataResponse> PersistentData(long systemId, List<Integration.Abstract.Model.PersistentData> persistentData, FullToken companyToken)
         {
@@ -184,6 +294,53 @@ namespace IntegrationDevelopmentUtility.Utilities
 
             var taskLogger = Task.Run(async () => await apiCall.ProcessRequest());
             taskLogger.GetAwaiter().GetResult();
+        }
+
+        //Note that this endpoint does NOT return fields
+        public static TableResponse TableGet(long tableId, FullToken systemToken)
+        {
+            var apiCall = new iPaaSApiCall("/v1/Integration/Table/{id}", systemToken, iPaaSApiCall.ApiType.Integrator, typeof(TableResponse), RestSharp.Method.Get);
+
+            apiCall.AddParameter("id", tableId, RestSharp.ParameterType.UrlSegment);
+
+            var taskLogger = Task.Run(async () => await apiCall.ProcessRequest());
+            var response = (TableResponse)taskLogger.GetAwaiter().GetResult();
+
+            return response;
+        }
+
+        /// <summary>
+        /// This will NOT return a value for system type 1
+        /// </summary>
+        /// <param name="filters"></param>
+        /// <param name="systemToken"></param>
+        /// <returns></returns>
+        public static List<TableGetAllResponse> TablesGetAll(string filters, FullToken systemToken)
+        {
+            var url = "/v1/Integration/Tables";
+            if (!string.IsNullOrEmpty(filters))
+                url += $"?filter={System.Net.WebUtility.UrlEncode(filters)}";
+
+            var apiCall = new iPaaSApiCall(url, systemToken, iPaaSApiCall.ApiType.Integrator, typeof(List<TableGetAllResponse>), RestSharp.Method.Get);
+
+            var taskLogger = Task.Run(async () => await apiCall.ProcessRequest());
+            var response = (List<TableGetAllResponse>)taskLogger.GetAwaiter().GetResult();
+
+            return response;
+        }
+
+        public static List<LookupResponse> TablesLookup(string filters, FullToken systemToken)
+        {
+            var url = "/v2/Lookup/Tables";
+            if (!string.IsNullOrEmpty(filters))
+                url += $"?filter={System.Net.WebUtility.UrlEncode(filters)}";
+
+            var apiCall = new iPaaSApiCall(url, systemToken, iPaaSApiCall.ApiType.Subscription, typeof(List<LookupResponse>), RestSharp.Method.Get);
+
+            var taskLogger = Task.Run(async () => await apiCall.ProcessRequest());
+            var response = (List<LookupResponse>)taskLogger.GetAwaiter().GetResult();
+
+            return response;
         }
 
         public static TopicSubscriptionResponse TopicSubscriptionCreate(TopicSubscriptionRequest request, FullToken companyToken)

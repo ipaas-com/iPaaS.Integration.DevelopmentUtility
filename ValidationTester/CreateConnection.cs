@@ -118,16 +118,19 @@ namespace IntegrationDevelopmentUtility.ValidationTester
             }
 
 
-            settings.SettingsDictionary.TryAdd("Integrations_URL", Utilities.Settings.Instance.SubscriptionUrl);
+            settings.SettingsDictionary.TryAdd("Integrators_URL", Utilities.Settings.Instance.IntegratorUrl);
             settings.SettingsDictionary.TryAdd("Subscriptions_URL", Utilities.Settings.Instance.SubscriptionUrl);
             settings.SettingsDictionary.TryAdd("SSO_URL", Utilities.Settings.Instance.SSOUrl);
             settings.SettingsDictionary.TryAdd("IPaaSApi_Token", apiToken);
             settings.SettingsDictionary.TryAdd("Hook_URL", Utilities.Settings.Instance.HookUrl);
 
             settings.SettingsDictionary.TryAdd("Customers_URL", Utilities.Settings.Instance.CustomerURL);
-            settings.SettingsDictionary.TryAdd("GiftCards_URL", Utilities.Settings.Instance.GiftCardUrl);
+            settings.SettingsDictionary.TryAdd("Giftcards_URL", Utilities.Settings.Instance.GiftCardUrl);
             settings.SettingsDictionary.TryAdd("Products_URL", Utilities.Settings.Instance.ProductUrl);
             settings.SettingsDictionary.TryAdd("Transactions_URL", Utilities.Settings.Instance.TransactionUrl);
+
+            settings.SettingsDictionary.TryAdd("Employees_URL", Utilities.Settings.Instance.EmployeeUrl);
+            settings.SettingsDictionary.TryAdd("Messages_URL", Utilities.Settings.Instance.MessageUrl);
         }
 
         public static async Task ExternalDataHandlerAsync(Integration.Abstract.Helpers.TransferRequest transferRequest)
@@ -148,6 +151,7 @@ namespace IntegrationDevelopmentUtility.ValidationTester
                 case "V":
                     level = Utilities.StandardUtilities.Severity.VERBOSE;
                     break;
+                case "I":
                 case "D":
                     level = Utilities.StandardUtilities.Severity.DETAIL;
                     break;

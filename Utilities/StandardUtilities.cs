@@ -1,7 +1,9 @@
 ﻿using IntegrationDevelopmentUtility.iPaaSModels;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
+using System.Reflection;
 using System.Security;
 using System.Text;
 using System.Threading;
@@ -26,6 +28,7 @@ namespace IntegrationDevelopmentUtility.Utilities
             WriteToConsole(ex.Message, severity);
             if (ex.InnerException != null)
                 WriteToConsole(ex.InnerException.Message, severity);
+            WriteToConsole(ex.StackTrace, severity);
         }
 
         public static void WriteToConsole(string message, Severity severity, string uncoloredPrefix = null)
@@ -62,7 +65,7 @@ namespace IntegrationDevelopmentUtility.Utilities
 
         public static FullToken ApiTokenForSystem(long systemId)
         {
-            var company = Settings.Instance.Companies.Find(x => x.Systems.Exists(y => y.Id == systemId));
+            var company = Settings.Instance.Companies.Find(x => x.Systems != null && x.Systems.Exists(y => y.Id == systemId));
             if (company == null)
                 return null;
             return company.CompanySpecificFullToken;
@@ -438,6 +441,60 @@ namespace IntegrationDevelopmentUtility.Utilities
                 return false;
 
             return true;
+        }
+
+        /// <summary>
+        /// This proc is intended to create a more readable version of the enum values. E.g. Product Unit instead of PRODUCT_UNIT. There are two ways to get this: usually
+        /// it will just covnert the value to PascalCase and replace any underscores with spaces; we will also look for a [Description("")] attribute on the value and use
+        /// that if it is supplied
+        /// </summary>
+        /// <param name="enumType"></param>
+        /// <param name="value"></param>
+        /// <param name="returnNegativeOneIfMissing">If the value is not found, you may want to throw an error, or you may want to get back a value indicating that the result was not found</param>
+        /// <returns></returns>
+        public static string ConvertEnumToString(Type enumType, int value, bool returnNegativeOneIfMissing = false)
+        {
+            // Check if value is within the range of enum's defined values
+            if (!Enum.IsDefined(enumType, value))
+            {
+                if (returnNegativeOneIfMissing)
+                    return "-1";
+                else
+                    throw new Exception($"Value not found in the enum {enumType.Name}");
+            }
+
+            if (!enumType.IsEnum)
+            {
+                throw new ArgumentException("Parameter is not an enum type", nameof(enumType));
+            }
+
+            string enumName = Enum.GetName(enumType, value);
+            if (enumName == null)
+                return string.Empty;
+
+            // Get the field info for the enum value
+            FieldInfo fi = enumType.GetField(enumName);
+            if (fi == null)
+                return string.Empty;
+
+            // Check if the Description attribute is defined
+            DescriptionAttribute[] attributes = (DescriptionAttribute[])fi.GetCustomAttributes(typeof(DescriptionAttribute), false);
+            if (attributes != null && attributes.Length > 0)
+                return attributes[0].Description;
+            else
+            {
+                if (string.IsNullOrEmpty(enumName))
+                    return string.Empty;
+
+                string[] words = enumName.Split('_');
+                for (int i = 0; i < words.Length; i++)
+                    if (words[i].Length > 0)
+                        words[i] = char.ToUpper(words[i][0]) + words[i].Substring(1).ToLower();
+
+                var retVal = string.Join(" ", words);
+
+                return retVal.Replace("Ipaas", "iPaaS");//Fix the ipaas styling
+            }
         }
     }
 

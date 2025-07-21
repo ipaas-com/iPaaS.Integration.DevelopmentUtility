@@ -95,6 +95,7 @@ namespace IntegrationDevelopmentUtility.Utilities
                 StandardUtilities.WriteToConsole($"Hook has been sent, but no log data will be available", StandardUtilities.Severity.LOCAL);
             }
 
+            #region removed code
             //DateTimeOffset? cutoffDTO = DateTimeOffset.MinValue;
             //DateTimeOffset maxDateFound = DateTimeOffset.MinValue;
 
@@ -152,7 +153,7 @@ namespace IntegrationDevelopmentUtility.Utilities
 
             //    Thread.Sleep(Settings.Instance.HookReadIntervalMS); //Sleep 5 seconds
             //}
-
+            #endregion
         }
 
         /// <summary>

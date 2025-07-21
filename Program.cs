@@ -1,11 +1,14 @@
 ﻿using Azure;
+using IntegrationDevelopmentUtility.DocumentationGenerator;
 using IntegrationDevelopmentUtility.iPaaSModels;
+//using IntegrationDevelopmentUtility.OpenAI;
 using IntegrationDevelopmentUtility.Utilities;
 using Microsoft.Extensions.Configuration;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Numerics;
 using System.Reflection;
 using System.Reflection.Metadata.Ecma335;
@@ -37,17 +40,21 @@ namespace IntegrationDevelopmentUtility
 
             //Settings.AzureFileShareConnectionString = "DefaultEndpointsProtocol=https;AccountName=integrationdevshare;AccountKey=20Gy5XDKzIR8PkmpQGYQrFjIkbtfVwMM/yD1NF5z8Sfd9PH9JlGbdLz4F8t3b37eo/RkmM3VgZie20tQS70AJA==;EndpointSuffix=core.windows.net";
 
-            //Load the default settings
-            Settings.Instance = JsonConvert.DeserializeObject<Settings>(File.ReadAllText(Directory.GetCurrentDirectory() + @"\appsettings.json"));
 
-            if (!StandardUtilities.ValidateNotProduction())
-            {
-                StandardUtilities.WriteToConsole("Running this product against the Production environment is not supported.", StandardUtilities.Severity.LOCAL_ERROR);
-                return;
-            }
-            ;
+            //Load the default settings 
+            //Settings.Instance = JsonConvert.DeserializeObject<Settings>(File.ReadAllText(Directory.GetCurrentDirectory() + @"\appsettings.json"));
+            //The line above does not support user secrets. The three lines below correct that.
+            var config = new ConfigurationBuilder()
+                .SetBasePath(Directory.GetCurrentDirectory())
+                .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
+                .AddUserSecrets<Program>() // Load user secrets
+                .Build();
 
-            //ZOMBIE TESTING!
+            // Read settings into your object
+            Settings.Instance = config.Get<Settings>();
+            Settings.Instance.ConsumeSettingsFile(config); //Reconcile fields that have different names between the config file and the settings model
+
+            #region testing dll loading
             //load all the dlls before we add a resolution handler
             //AssemblyA = Assembly.LoadFrom(Settings.Instance.IntegrationFileLocation);
             //var assemblyList = new List<string>();
@@ -68,6 +75,7 @@ namespace IntegrationDevelopmentUtility
 
             //now we can add our handler
             //AppDomain.CurrentDomain.AssemblyResolve += CurrentDomain_AssemblyResolve;
+            #endregion
 
             try
             {
@@ -84,6 +92,10 @@ namespace IntegrationDevelopmentUtility
                 StandardUtilities.WriteToConsole("System settings specified in config file. Creating system 0.", StandardUtilities.Severity.LOCAL);
                 StandardUtilities.CreateSystemZero();
             }
+
+            //just testing
+            //var mainCompany = Settings.Instance.Companies.Find(x => x.Id == Guid.Parse("bea5a8e3-345a-4277-8669-2263e1939e3c"));
+            //var dynamicFormulas = iPaaSCallWrapper.DynamicFormulas("1|1", mainCompany.CompanySpecificFullToken);
 
             while (true)
             {
@@ -123,6 +135,12 @@ namespace IntegrationDevelopmentUtility
                     }
                     else if (parsed[0].ToUpper() == "UPLOAD")
                     {
+                        if (!StandardUtilities.ValidateNotProduction())
+                        {
+                            StandardUtilities.WriteToConsole("Running this product against the Production environment is not supported.", StandardUtilities.Severity.LOCAL_ERROR);
+                            return;
+                        }
+
                         string uploadFileName;
                         long integrationId;
 
@@ -224,6 +242,7 @@ namespace IntegrationDevelopmentUtility
 
                         RunHookLocal(parsed);
 
+                        #region removed code
                         //var thread = new Thread(() => RunHookLocal(parsed));
                         //thread.Start();
                         //;
@@ -247,6 +266,21 @@ namespace IntegrationDevelopmentUtility
                         //    //Console.WriteLine(" Cancelling log listener");
                         //    //Thread.Sleep(5 * 1000);
                         //}
+                        #endregion
+                    }
+                    else if (parsed[0].ToUpper() == "HOOKCHAT")
+                    {
+                        ; //Removed for check in
+                        //if(string.IsNullOrEmpty(Settings.Instance.CompanyId))
+                        //    throw new Exception("The CompanyId setting is not specified in the appsettings.json file. This is required for the HOOKCHAT command.");
+
+                        ////Pull everything after HOOKCHAT
+                        //var userRequest = resp.Substring(8).Trim();
+
+                        //var openAi = new OpenAIApi();
+                        //var aiResponses = await openAi.SendHookRequestChat(Guid.Parse(Settings.Instance.CompanyId), userRequest);
+                        //foreach(var aiResponse in aiResponses)
+                        //    RunHookLocal(aiResponse);
                     }
                     else if (parsed[0].ToUpper() == "TEST")
                     {
@@ -412,6 +446,130 @@ namespace IntegrationDevelopmentUtility
                         // Check if ipaasUrl is null
                         if (!runAll)
                             Utilities.ModelBuilder.BuildModels(ipaasURL, filePath, nameSpace, suffix);
+                    }
+                    else if (parsed[0].ToUpper() == "AIDEMO")
+                    {
+                        ; //Removed for check in
+                        //if (string.IsNullOrEmpty(Settings.Instance.CompanyId))
+                        //    throw new Exception("The CompanyId setting is not specified in the appsettings.json file. This is required for the AIDEMO command.");
+
+                        //// Check that the required parameters were passed in
+                        //if (parsed.Length < 2 || parsed.Length > 3)
+                        //{
+                        //    StandardUtilities.WriteToConsole("AIDEMO requires mapping collection id: AIDEMO <mappingCollectionId>", StandardUtilities.Severity.LOCAL);
+                        //    continue;
+                        //}
+
+                        //if (!long.TryParse(parsed[1], out long mappingCollectionId))
+                        //{
+                        //    StandardUtilities.WriteToConsole("mappingCollectionId must be a valid integer", StandardUtilities.Severity.LOCAL);
+                        //    continue;
+                        //}
+
+                        //var mainCompany = Settings.Instance.Companies.Find(x => x.Id == Guid.Parse(Settings.Instance.CompanyId));
+
+                        //string aiUserPrompt;
+                        //if(parsed.Length == 3)
+                        //    aiUserPrompt = parsed[2];
+                        //else
+                        //{
+                        //    Console.WriteLine("What would you like help with? (Press Enter on an empty line to finish):");
+
+                        //    var lines = new List<string>();
+                        //    string? line;
+                        //    while ((line = Console.ReadLine()) != null)
+                        //    {
+                        //        if (string.IsNullOrWhiteSpace(line))
+                        //            break;
+
+                        //        lines.Add(line);
+                        //    }
+
+                        //    aiUserPrompt = string.Join(Environment.NewLine, lines);
+
+                        //    //aiUserPrompt = Console.ReadLine();
+                        //}
+
+                        //if (aiUserPrompt == null || aiUserPrompt.ToLower() == "exit")
+                        //    continue;
+
+                        //var promptResponse = await DynamicFormulaHelper.Execute(mappingCollectionId, aiUserPrompt, mainCompany.CompanySpecificFullToken);
+
+                        //if (promptResponse != null) 
+                        //{ 
+                        //    if(promptResponse.Error != null)
+                        //    {
+                        //        StandardUtilities.WriteToConsole(promptResponse.Error, StandardUtilities.Severity.LOCAL_ERROR);
+                        //        if(!string.IsNullOrEmpty(promptResponse.Formula))
+                        //        {
+                        //            StandardUtilities.WriteToConsole("Try using this alternative: " + Environment.NewLine + promptResponse.Formula, StandardUtilities.Severity.DETAIL);
+                        //            if (!string.IsNullOrEmpty(promptResponse.Formula))
+                        //                StandardUtilities.WriteToConsole("Explanation: " + Environment.NewLine + promptResponse.Description, StandardUtilities.Severity.DETAIL);
+                        //        }
+                        //    }
+                        //    else if (!string.IsNullOrEmpty(promptResponse.Request))
+                        //    {
+                        //        StandardUtilities.WriteToConsole("Some additional data has been requested. Please modify your request to address the request below.", StandardUtilities.Severity.WARNING);
+                        //        StandardUtilities.WriteToConsole(promptResponse.Request, StandardUtilities.Severity.WARNING);
+                        //    }
+                        //    else
+                        //    {
+                        //        //Write the formula a different color so it stands out and demonstrates that it is returned separate from the 
+                        //        StandardUtilities.WriteToConsole("Formula:" + Environment.NewLine + promptResponse.Formula, StandardUtilities.Severity.WARNING); 
+                        //        StandardUtilities.WriteToConsole("Description:" + Environment.NewLine + promptResponse.Description, StandardUtilities.Severity.DETAIL);
+                        //    }
+                        //}
+
+                    }
+                    else if (parsed[0].ToUpper() == "CONVERSIONFUNCTION" || parsed[0].ToUpper() == "CONVERSIONFUNCTIONS")
+                    {
+                        if (string.IsNullOrEmpty(Settings.Instance.IntegrationFileLocation))
+                            throw new Exception("CONVERSIONFUNCTION only works when a value is specified for integration_file_location in your appsettings.json file");
+
+                        //CONVERSIONFUNCTION type=<UPLOAD|WIKI|CSV> inputfile=<filename> class=<ConversionFunctionClass> systemTypeVersionId=<SystemTypeVersionId>
+                        string outputType = null;
+                        string filename = null;
+                        string className = null;
+                        string systemTypeVersionId = null;
+
+                        foreach(var parsedValue in parsed)
+                        {
+                            if (parsedValue.ToUpper().StartsWith("TYPE="))
+                                outputType = parsedValue.Substring(5);
+                            else if (parsedValue.ToUpper().StartsWith("INPUTFILE="))
+                                filename = parsedValue.Substring(10);
+                            else if (parsedValue.ToUpper().StartsWith("CLASS="))
+                                className = parsedValue.Substring(6);
+                            else if (parsedValue.ToUpper().StartsWith("SYSTEMTYPEVERSIONID="))
+                                systemTypeVersionId = parsedValue.Substring(20);
+                            else if (parsedValue.ToUpper().StartsWith("CONVERSIONFUNCTION"))
+                                continue; //This is just the command name, which we can skip
+                            else
+                                throw new Exception($"Command must be in the format CONVERSIONFUNCTION type=<UPLOAD|WIKI|CSV>|defualt:UPLOAD [inputfile=<filename>|default:file specified in appsettings] [class=<ConversionFunctionClass>|default: ConversionFunctions] [systemTypeVersionId=<SystemTypeVersionId>|only required for API uploads]. Invalid parameter: {parsedValue}");
+                        }
+
+                        //Determine the classname. Default to ConversionFunctions if none was specified
+                        if (string.IsNullOrEmpty(className))
+                            className = "ConversionFunctions";
+
+                        if(string.IsNullOrEmpty(filename))
+                            //default to the integration file
+                            filename = Settings.Instance.IntegrationFileLocation;
+
+                        if (filename.StartsWith("\""))
+                            filename = filename.Substring(1, filename.Length - 2);
+
+                        //Now rename the .dll to .xml
+                        if (filename.EndsWith(".dll"))
+                            filename = filename.Substring(0, filename.Length - 4) + ".xml";
+
+                        //default to UPLOAD as the type
+                        if (string.IsNullOrEmpty(outputType))
+                            outputType = "UPLOAD";
+
+
+                        //Call the output function. Note that we wait to validate the params until later
+                        await DocumentationReader.TurnXMLIntoOutput(Settings.Instance.IntegrationFileLocation, filename, className, outputType, systemTypeVersionId);
                     }
                     else
                         Console.WriteLine("Invalid entry method. Please use the UPLOAD, HOOK, TEST, or BUILDMODELS commands. Type a command followed by /? for more details.");

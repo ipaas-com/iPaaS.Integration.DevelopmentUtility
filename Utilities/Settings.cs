@@ -1,4 +1,5 @@
 ﻿using IntegrationDevelopmentUtility.iPaaSModels;
+using Microsoft.Extensions.Configuration;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
@@ -74,5 +75,32 @@ namespace IntegrationDevelopmentUtility.Utilities
         public List<SubscriptionResponse> Systems = new List<SubscriptionResponse>();
 
         public List<SubscriptionResponse> IntegratorSystems = new List<SubscriptionResponse>();
+
+        public void ConsumeSettingsFile(IConfigurationRoot config)
+        {
+            Username = config.GetValue<string>("username");
+            Password = config.GetValue<string>("password");
+
+
+            //Some settings are loaded automatically in the config.Get call in Program.cs, but fields with different names (e.g. hook_url instead of HookUrl)
+            //must be manually reconciled.
+            HookUrl = config.GetValue<string>("hook_url");
+            IntegratorUrl = config.GetValue<string>("integrator_url");
+            LoggerUrl = config.GetValue<string>("logger_url");
+            ProductUrl = config.GetValue<string>("product_url");
+            GiftCardUrl = config.GetValue<string>("giftcard_url");
+            CustomerURL = config.GetValue<string>("customer_url");
+            TransactionUrl = config.GetValue<string>("transaction_url");
+            SSOUrl = config.GetValue<string>("sso_url");
+            SubscriptionUrl = config.GetValue<string>("subscription_url");
+            EmployeeUrl = config.GetValue<string>("employee_url");
+            MessageUrl = config.GetValue<string>("message_url");
+            CompanyId = config.GetValue<string>("company_id");
+            IntegrationFileLocation = config.GetValue<string>("integration_file_location");
+            IntegrationFileIntegrationId = config.GetValue<long>("integration_file_integration_id");
+            
+            HookReadIntervalMS = config.GetValue<int>("hook_read_interval_ms");
+            FileUploadDelayIntervalSecs = config.GetValue<int>("file_upload_delay_interval_secs");
+        }
     }
 }

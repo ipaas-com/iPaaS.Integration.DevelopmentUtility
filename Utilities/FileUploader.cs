@@ -73,7 +73,7 @@ namespace IntegrationDevelopmentUtility.Utilities
                 }
 
                 //If we don't require integrator access, then just look for a system that has the same integration id
-                matchingCompany = Settings.Instance.Companies.Find(x => x.Systems.Any(y => y.Type == integrationId));
+                matchingCompany = Settings.Instance.Companies.Find(x => x.Systems != null && x.Systems.Any(y => y.Type == integrationId));
                 if (matchingCompany == null && integrationId != 0)
                 {
                     StandardUtilities.WriteToConsole($"You must have access to at least one system of the requested system type to upload a file. (Integration Id {integrationId})", StandardUtilities.Severity.LOCAL_ERROR);

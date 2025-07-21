@@ -9,9 +9,18 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <TargetFramework>net6.0</TargetFramework>
     <UserSecretsId>0ff8df0a-d8e0-4306-9118-d4c927e7723c</UserSecretsId>
   </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="DLLFiles\**" />
+    <Compile Remove="XMLFiles\**" />
+    <EmbeddedResource Remove="DLLFiles\**" />
+    <EmbeddedResource Remove="XMLFiles\**" />
+    <None Remove="DLLFiles\**" />
+    <None Remove="XMLFiles\**" />
+  </ItemGroup>
 
   <ItemGroup>
     <None Remove="appsettings.json" />
@@ -19,7 +28,7 @@
 
   <ItemGroup>
     <Content Include="appsettings.json">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
   </ItemGroup>
 
@@ -32,12 +41,15 @@
     <PackageReference Include="GraphQL.Client.Serializer.Newtonsoft" Version="6.0.0" />
     <PackageReference Include="GraphQL.Primitives" Version="6.0.0" />
     <PackageReference Include="iPaaS.Integration.SDK" Version="1.0.4-CI-20230823-203326" />
-    <PackageReference Include="Microsoft.Extensions.Configuration.FileExtensions" Version="7.0.0" />
-    <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="7.0.0" />
-    <PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" Version="3.1.13" />
+    <PackageReference Include="Microsoft.Extensions.Configuration" Version="8.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="8.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.FileExtensions" Version="8.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="8.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" Version="8.0.0" />
     <PackageReference Include="Microsoft.OpenApi" Version="1.6.3" />
     <PackageReference Include="Microsoft.OpenApi.Readers" Version="1.6.3" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+    <PackageReference Include="OpenAI" Version="2.0.0" />
     <PackageReference Include="RestSharp" Version="108.0.3" />
     <PackageReference Include="RestSharp.Serializers.NewtonsoftJson" Version="108.0.3" />
     <PackageReference Include="System.CodeDom" Version="7.0.0" />

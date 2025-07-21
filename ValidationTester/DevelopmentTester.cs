@@ -77,7 +77,7 @@ namespace IntegrationDevelopmentUtility.ValidationTester
             {
                 Program.OperationCancelled = true;
                 Program.OperationCompleted = true;
-                StandardUtilities.WriteToConsole("The method name specified does not exist.", StandardUtilities.Severity.LOCAL_ERROR);
+                StandardUtilities.WriteToConsole($"The method name \"{methodName}\" does not exist.", StandardUtilities.Severity.LOCAL_ERROR);
                 return;
             }
 
