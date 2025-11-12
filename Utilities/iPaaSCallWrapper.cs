@@ -291,6 +291,7 @@ namespace IntegrationDevelopmentUtility.Utilities
                 iPaaSApiCall.ApiType.Hook, null, RestSharp.Method.Post);
 
             apiCall.AddBodyParameter(webhook);
+            apiCall.AddParameter("x-correlation-id", webhook.Notifications[0].TrackingGuid.ToString(), RestSharp.ParameterType.HttpHeader);
 
             var taskLogger = Task.Run(async () => await apiCall.ProcessRequest());
             taskLogger.GetAwaiter().GetResult();

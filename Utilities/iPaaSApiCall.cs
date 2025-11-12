@@ -194,6 +194,9 @@ namespace IntegrationDevelopmentUtility.Utilities
                         case ParameterType.GetOrPost:
                             req.AddParameter(param.Name, param.Value, ParameterType.GetOrPost);
                             break;
+                        case ParameterType.HttpHeader:
+                            req.AddHeader(param.Name, Convert.ToString(param.Value));
+                            break;
                         default:
                             throw new Exception("Unsupported parameter type: " + param.Type.ToString());
                     }

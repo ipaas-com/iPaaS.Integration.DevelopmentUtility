@@ -39,8 +39,9 @@ namespace IntegrationDevelopmentUtility.Utilities
         [JsonProperty("company_id")]
         public string CompanyId;
 
-        [JsonProperty("azurefileshare_connection_string")]
-        public string AzureFileShareConnectionString;
+        //This was user for direct upload, which is no longer supported.
+        //[JsonProperty("azurefileshare_connection_string")]
+        //public string AzureFileShareConnectionString;
 
         [JsonProperty("system_settings")]
         public Dictionary<string, string> SystemSettings;
@@ -58,10 +59,12 @@ namespace IntegrationDevelopmentUtility.Utilities
 
         [JsonProperty("hook_read_interval_ms")]
         public int HookReadIntervalMS = 5001;
+
+
         [JsonProperty("file_upload_delay_interval_secs")]
         public int FileUploadDelayIntervalSecs = 30;
 
-        //Fields retrieved durng the login process
+        //Fields retrieved during the login process
         public FullToken DefaultFullToken;
 
         public List<CompanyInfoResponse> AdminCompanies = new List<CompanyInfoResponse>();

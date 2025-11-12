@@ -28,15 +28,15 @@ namespace IntegrationDevelopmentUtility.Utilities
             TRANSACTION_NOTE = 15,
             CUSTOMER_CATEGORY = 16,
             CUSTOMER_ADDRESS = 17,
-            CUSTOMER_CONTACT = 18,
-            SHIPMENT = 19,
-            SHIPMENT_LINE = 20,
+            CUSTOMER_CONTACT = 18,  //Not currently implemented in iPaaS
+            SHIPMENT = 19,          //Not currently implemented in iPaaS
+            SHIPMENT_LINE = 20,     //Not currently implemented in iPaaS
             SHIPPING_METHOD = 21,
             PAYMENT_METHOD = 22,
             PRODUCT_OPTION = 23,
             PRODUCT_OPTION_VALUE = 24,
             PRODUCT_VARIANT_OPTION = 25,
-            PRODUCT_VARIANT_OPTION_VALUE = 26,
+            PRODUCT_VARIANT_OPTION_VALUE = 26,  //Not currently implemented in iPaaS, but does exist in other systems
             GIFT_CARD = 27,
             GIFT_CARD_ACTIVITY = 28,
             TRANSACTION_DISCOUNT = 29,
@@ -63,7 +63,16 @@ namespace IntegrationDevelopmentUtility.Utilities
             CUSTOMER_COMPANY_ADDRESS = 50,
             COMPANY_RELATIONSHIP = 51,
             CUSTOMER_RELATIONSHIP = 52,
-            CUSTOMER_COMPANY_CATEGORY = 53
+            CUSTOMER_COMPANY_CATEGORY = 53,
+            LOCATION_ADDRESS = 54,
+            LCOATION_GROUP_LOCATION_ASSIGNMENT = 55,
+            CATEGORY_SET_CATEGORY_ASSIGNMENT = 56,
+            CUSTOMER_CATEGORY_ASSIGNMENT = 57,
+            COMPANY_CATEGORY_ASSIGNMENT = 58,
+            IMAGE = 59,
+            IMAGE_ASSIGNMENT = 60,
+            BULK_PRICE = 61,
+            BULK_PRICE_ASSIGNMENT = 62,
         }
     }
 }

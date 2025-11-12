@@ -496,6 +496,143 @@ namespace IntegrationDevelopmentUtility.Utilities
                 return retVal.Replace("Ipaas", "iPaaS");//Fix the ipaas styling
             }
         }
+
+        public static MethodInfo FindBestMethod(Type type, string name, object[] args)
+        {
+            var candidates = type
+                .GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static)
+                .Where(m => m.Name == name)
+                .ToList();
+
+            // Keep only overloads that can accept the given arguments
+            candidates = candidates
+                .Where(m => AreParamsCompatible(m.GetParameters(), args))
+                .ToList();
+
+            if (candidates.Count == 0)
+                return null;
+
+            if (candidates.Count == 1)
+                return candidates[0];
+
+            // Prefer the most specific: score exact type matches higher
+            MethodInfo best = null;
+            int bestScore = int.MinValue;
+
+            foreach (var m in candidates)
+            {
+                var ps = m.GetParameters();
+                int score = 0;
+                bool isParams = ps.Length > 0 && ps.Last().GetCustomAttribute<ParamArrayAttribute>() != null;
+                var fixedCount = isParams ? ps.Length - 1 : ps.Length;
+
+                // Score fixed parameters
+                for (int i = 0; i < Math.Min(fixedCount, args.Length); i++)
+                {
+                    var pType = ps[i].ParameterType;
+                    var a = args[i];
+
+                    if (a is null)
+                    {
+                        // null fits ref types and Nullable<T>
+                        if (!IsNullAssignable(pType)) score -= 100; // penalize impossible
+                    }
+                    else
+                    {
+                        var aType = a.GetType();
+                        if (pType == aType) score += 3;                // exact match
+                        else if (pType.IsAssignableFrom(aType)) score += 1; // assignable
+                        else score -= 100;                              // not compatible
+                    }
+                }
+
+                // Params[] scoring (if present)
+                if (isParams)
+                {
+                    var elemType = ps.Last().ParameterType.GetElementType();
+                    for (int i = fixedCount; i < args.Length; i++)
+                    {
+                        var a = args[i];
+                        if (a is null)
+                        {
+                            if (!IsNullAssignable(elemType)) score -= 100;
+                        }
+                        else if (elemType == a.GetType()) score += 2;
+                        else if (elemType.IsAssignableFrom(a.GetType())) score += 1;
+                        else score -= 100;
+                    }
+                }
+
+                // Prefer non-params if everything else equal
+                if (!isParams) score += 1;
+
+                if (score > bestScore)
+                {
+                    bestScore = score;
+                    best = m;
+                }
+            }
+
+            return best;
+        }
+
+        static bool AreParamsCompatible(ParameterInfo[] ps, object[] args)
+        {
+            bool hasParams = ps.Length > 0 && ps.Last().GetCustomAttribute<ParamArrayAttribute>() != null;
+            int fixedCount = hasParams ? ps.Length - 1 : ps.Length;
+
+            // Respect required parameter count (exclude optional/params tail)
+            int requiredCount = ps.Take(fixedCount).Count(p => !p.IsOptional);
+
+            if (args.Length < requiredCount)
+                return false;
+
+            if (!hasParams && args.Length > ps.Length)
+                return false;
+
+            // Check fixed parameters
+            for (int i = 0; i < Math.Min(fixedCount, args.Length); i++)
+            {
+                var pType = ps[i].ParameterType;
+                var arg = args[i];
+
+                if (arg is null)
+                {
+                    if (!IsNullAssignable(pType)) return false;
+                }
+                else
+                {
+                    var aType = arg.GetType();
+                    if (!(pType == aType || pType.IsAssignableFrom(aType)))
+                        return false;
+                }
+            }
+
+            // Check params[] tail
+            if (hasParams)
+            {
+                var elemType = ps.Last().ParameterType.GetElementType();
+                for (int i = fixedCount; i < args.Length; i++)
+                {
+                    var arg = args[i];
+                    if (arg is null)
+                    {
+                        if (!IsNullAssignable(elemType)) return false;
+                    }
+                    else
+                    {
+                        var aType = arg.GetType();
+                        if (!(elemType == aType || elemType.IsAssignableFrom(aType)))
+                            return false;
+                    }
+                }
+            }
+
+            return true;
+        }
+
+        static bool IsNullAssignable(Type t) =>
+            !t.IsValueType || Nullable.GetUnderlyingType(t) != null;
     }
 
     internal class TimedKeyReader
