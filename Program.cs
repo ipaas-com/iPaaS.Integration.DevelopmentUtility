@@ -1,6 +1,8 @@
 ﻿using Azure;
 using IntegrationDevelopmentUtility.DocumentationGenerator;
 using IntegrationDevelopmentUtility.iPaaSModels;
+using IntegrationDevelopmentUtility.OpenAI;
+
 //using IntegrationDevelopmentUtility.OpenAI;
 using IntegrationDevelopmentUtility.Utilities;
 using Microsoft.Extensions.Configuration;
@@ -32,15 +34,6 @@ namespace IntegrationDevelopmentUtility
             var handler = new EventHandler<UnobservedTaskExceptionEventArgs>(UnobservedTaskExceptionHandler);
             TaskScheduler.UnobservedTaskException += handler;
 
-            //TODO: Load from settings file
-            //Settings.HookUrl = "https://devapi.ipaas.com/hookapi";
-            //Settings.IntegrationUrl = "https://devapi.ipaas.com/integrations";
-            //Settings.LoggerUrl = "https://devapi.ipaas.com/listener";
-            //Settings.SSOUrl = "https://devapi.ipaas.com/sso";
-
-            //Settings.AzureFileShareConnectionString = "DefaultEndpointsProtocol=https;AccountName=integrationdevshare;AccountKey=20Gy5XDKzIR8PkmpQGYQrFjIkbtfVwMM/yD1NF5z8Sfd9PH9JlGbdLz4F8t3b37eo/RkmM3VgZie20tQS70AJA==;EndpointSuffix=core.windows.net";
-
-
             //Load the default settings 
             //Settings.Instance = JsonConvert.DeserializeObject<Settings>(File.ReadAllText(Directory.GetCurrentDirectory() + @"\appsettings.json"));
             //The line above does not support user secrets. The three lines below correct that.
@@ -53,29 +46,6 @@ namespace IntegrationDevelopmentUtility
             // Read settings into your object
             Settings.Instance = config.Get<Settings>();
             Settings.Instance.ConsumeSettingsFile(config); //Reconcile fields that have different names between the config file and the settings model
-
-            #region testing dll loading
-            //load all the dlls before we add a resolution handler
-            //AssemblyA = Assembly.LoadFrom(Settings.Instance.IntegrationFileLocation);
-            //var assemblyList = new List<string>();
-            //assemblyList.Add("Shopify.Data.EmbeddedAssemblies.GraphQL.Client.Abstractions.dll");
-            //assemblyList.Add("Shopify.Data.EmbeddedAssemblies.GraphQL.Client.Abstractions.Websocket.dll");
-            //assemblyList.Add("Shopify.Data.EmbeddedAssemblies.GraphQL.Client.dll");
-            //assemblyList.Add("Shopify.Data.EmbeddedAssemblies.GraphQL.Client.Serializer.Newtonsoft.dll");
-            //assemblyList.Add("Shopify.Data.EmbeddedAssemblies.GraphQL.dll");
-            //assemblyList.Add("Shopify.Data.EmbeddedAssemblies.GraphQL.Primitives.dll");
-
-            //foreach (var assemblyName2 in assemblyList)
-            //{
-            //    Console.WriteLine($"Loading {assemblyName2}");
-            //    var assembly = Assembly.Load(assemblyName2);
-            //    additional.Add(assembly.FullName, assembly);
-            //    Console.WriteLine($"Complete {assemblyName2}");
-            //}
-
-            //now we can add our handler
-            //AppDomain.CurrentDomain.AssemblyResolve += CurrentDomain_AssemblyResolve;
-            #endregion
 
             try
             {
@@ -92,10 +62,6 @@ namespace IntegrationDevelopmentUtility
                 StandardUtilities.WriteToConsole("System settings specified in config file. Creating system 0.", StandardUtilities.Severity.LOCAL);
                 StandardUtilities.CreateSystemZero();
             }
-
-            //just testing
-            //var mainCompany = Settings.Instance.Companies.Find(x => x.Id == Guid.Parse("bea5a8e3-345a-4277-8669-2263e1939e3c"));
-            //var dynamicFormulas = iPaaSCallWrapper.DynamicFormulas("1|1", mainCompany.CompanySpecificFullToken);
 
             while (true)
             {
@@ -284,13 +250,31 @@ namespace IntegrationDevelopmentUtility
                     }
                     else if (parsed[0].ToUpper() == "TEST")
                     {
-                        if (parsed.Length != 3)
+                        if (parsed.Length < 3)
                         {
-                            StandardUtilities.WriteToConsole("TEST usage: TEST <Method Name> <System Id>   Note: to use the configuration file settings, specifiy system 0. Run TEST /? for more details.", StandardUtilities.Severity.LOCAL);
+                            StandardUtilities.WriteToConsole("TEST usage: TEST <Method Name> <System Id>   Note: to use the configuration file settings, specify system 0. Run TEST /? for more details.", StandardUtilities.Severity.LOCAL);
                             continue;
                         }
 
-                          await ValidationTester.DevelopmentTester.ExecuteTestCase(parsed[1], Int64.Parse(parsed[2]));
+                        //This should be the system id
+                        var lastParameterStr = parsed[parsed.Length - 1];
+                        if(!Int64.TryParse(lastParameterStr, out var systemId))
+                        {
+                            StandardUtilities.WriteToConsole("TEST usage: TEST <Method Name> <System Id>   Note: to use the configuration file settings, specify system 0. Run TEST /? for more details.", StandardUtilities.Severity.LOCAL);
+                            continue;
+                        }
+
+                        //Combine everything except the first and last parameter into the method name
+                        //The param parser will split up method parameters, we want to recombine them.
+                        string methodName = "";
+                        for(int i =1; i < parsed.Length -1; i++)
+                        {
+                            if(i > 1)
+                                methodName += " ";
+                            methodName += parsed[i];
+                        }
+
+                        await ValidationTester.DevelopmentTester.ExecuteTestCase(methodName, systemId);
                     }
                     else if (parsed[0].ToUpper() == "APIKEYS")
                     {
@@ -447,80 +431,100 @@ namespace IntegrationDevelopmentUtility
                         if (!runAll)
                             Utilities.ModelBuilder.BuildModels(ipaasURL, filePath, nameSpace, suffix);
                     }
-                    else if (parsed[0].ToUpper() == "AIDEMO")
-                    {
-                        ; //Removed for check in
-                        //if (string.IsNullOrEmpty(Settings.Instance.CompanyId))
-                        //    throw new Exception("The CompanyId setting is not specified in the appsettings.json file. This is required for the AIDEMO command.");
+                    #region removed AI capability
+                    //else if (parsed[0].ToUpper() == "AIDEMO")
+                    //{
+                    //    ; //Removed for check in
+                    //    if (string.IsNullOrEmpty(Settings.Instance.CompanyId))
+                    //        throw new Exception("The CompanyId setting is not specified in the appsettings.json file. This is required for the AIDEMO command.");
 
-                        //// Check that the required parameters were passed in
-                        //if (parsed.Length < 2 || parsed.Length > 3)
-                        //{
-                        //    StandardUtilities.WriteToConsole("AIDEMO requires mapping collection id: AIDEMO <mappingCollectionId>", StandardUtilities.Severity.LOCAL);
-                        //    continue;
-                        //}
+                    //    // Check that the required parameters were passed in
+                    //    if (parsed.Length < 2 || parsed.Length > 3)
+                    //    {
+                    //        StandardUtilities.WriteToConsole("AIDEMO requires mapping collection id: AIDEMO <mappingCollectionId>", StandardUtilities.Severity.LOCAL);
+                    //        continue;
+                    //    }
 
-                        //if (!long.TryParse(parsed[1], out long mappingCollectionId))
-                        //{
-                        //    StandardUtilities.WriteToConsole("mappingCollectionId must be a valid integer", StandardUtilities.Severity.LOCAL);
-                        //    continue;
-                        //}
+                    //    if (!long.TryParse(parsed[1], out long mappingCollectionId))
+                    //    {
+                    //        StandardUtilities.WriteToConsole("mappingCollectionId must be a valid integer", StandardUtilities.Severity.LOCAL);
+                    //        continue;
+                    //    }
 
-                        //var mainCompany = Settings.Instance.Companies.Find(x => x.Id == Guid.Parse(Settings.Instance.CompanyId));
+                    //    var mainCompany = Settings.Instance.Companies.Find(x => x.Id == Guid.Parse(Settings.Instance.CompanyId));
 
-                        //string aiUserPrompt;
-                        //if(parsed.Length == 3)
-                        //    aiUserPrompt = parsed[2];
-                        //else
-                        //{
-                        //    Console.WriteLine("What would you like help with? (Press Enter on an empty line to finish):");
+                    //    string aiUserPrompt;
+                    //    if (parsed.Length == 3)
+                    //        aiUserPrompt = parsed[2];
+                    //    else
+                    //    {
+                    //        Console.WriteLine("What would you like help with? (Press Enter on an empty line to finish):");
 
-                        //    var lines = new List<string>();
-                        //    string? line;
-                        //    while ((line = Console.ReadLine()) != null)
-                        //    {
-                        //        if (string.IsNullOrWhiteSpace(line))
-                        //            break;
+                    //        var lines = new List<string>();
+                    //        string? line;
+                    //        while ((line = Console.ReadLine()) != null)
+                    //        {
+                    //            if (string.IsNullOrWhiteSpace(line))
+                    //                break;
 
-                        //        lines.Add(line);
-                        //    }
+                    //            lines.Add(line);
+                    //        }
 
-                        //    aiUserPrompt = string.Join(Environment.NewLine, lines);
+                    //        aiUserPrompt = string.Join(Environment.NewLine, lines);
 
-                        //    //aiUserPrompt = Console.ReadLine();
-                        //}
+                    //        //aiUserPrompt = Console.ReadLine();
+                    //    }
 
-                        //if (aiUserPrompt == null || aiUserPrompt.ToLower() == "exit")
-                        //    continue;
+                    //    if (aiUserPrompt == null || aiUserPrompt.ToLower() == "exit")
+                    //        continue;
 
-                        //var promptResponse = await DynamicFormulaHelper.Execute(mappingCollectionId, aiUserPrompt, mainCompany.CompanySpecificFullToken);
+                    //    var promptResponse = await DynamicFormulaHelper.Execute(mappingCollectionId, aiUserPrompt, mainCompany.CompanySpecificFullToken);
 
-                        //if (promptResponse != null) 
-                        //{ 
-                        //    if(promptResponse.Error != null)
-                        //    {
-                        //        StandardUtilities.WriteToConsole(promptResponse.Error, StandardUtilities.Severity.LOCAL_ERROR);
-                        //        if(!string.IsNullOrEmpty(promptResponse.Formula))
-                        //        {
-                        //            StandardUtilities.WriteToConsole("Try using this alternative: " + Environment.NewLine + promptResponse.Formula, StandardUtilities.Severity.DETAIL);
-                        //            if (!string.IsNullOrEmpty(promptResponse.Formula))
-                        //                StandardUtilities.WriteToConsole("Explanation: " + Environment.NewLine + promptResponse.Description, StandardUtilities.Severity.DETAIL);
-                        //        }
-                        //    }
-                        //    else if (!string.IsNullOrEmpty(promptResponse.Request))
-                        //    {
-                        //        StandardUtilities.WriteToConsole("Some additional data has been requested. Please modify your request to address the request below.", StandardUtilities.Severity.WARNING);
-                        //        StandardUtilities.WriteToConsole(promptResponse.Request, StandardUtilities.Severity.WARNING);
-                        //    }
-                        //    else
-                        //    {
-                        //        //Write the formula a different color so it stands out and demonstrates that it is returned separate from the 
-                        //        StandardUtilities.WriteToConsole("Formula:" + Environment.NewLine + promptResponse.Formula, StandardUtilities.Severity.WARNING); 
-                        //        StandardUtilities.WriteToConsole("Description:" + Environment.NewLine + promptResponse.Description, StandardUtilities.Severity.DETAIL);
-                        //    }
-                        //}
+                    //    if (promptResponse != null)
+                    //    {
+                    //        if (promptResponse.Error != null)
+                    //        {
+                    //            StandardUtilities.WriteToConsole(promptResponse.Error, StandardUtilities.Severity.LOCAL_ERROR);
+                    //            if (!string.IsNullOrEmpty(promptResponse.Formula))
+                    //            {
+                    //                StandardUtilities.WriteToConsole("Try using this alternative: " + Environment.NewLine + promptResponse.Formula, StandardUtilities.Severity.DETAIL);
+                    //                if (!string.IsNullOrEmpty(promptResponse.Formula))
+                    //                    StandardUtilities.WriteToConsole("Explanation: " + Environment.NewLine + promptResponse.Description, StandardUtilities.Severity.DETAIL);
+                    //            }
+                    //        }
+                    //        else if (!string.IsNullOrEmpty(promptResponse.Request))
+                    //        {
+                    //            StandardUtilities.WriteToConsole("Some additional data has been requested. Please modify your request to address the request below.", StandardUtilities.Severity.WARNING);
+                    //            StandardUtilities.WriteToConsole(promptResponse.Request, StandardUtilities.Severity.WARNING);
+                    //        }
+                    //        else
+                    //        {
+                    //            //Write the formula a different color so it stands out and demonstrates that it is returned separate from the 
+                    //            StandardUtilities.WriteToConsole("Formula:" + Environment.NewLine + promptResponse.Formula, StandardUtilities.Severity.WARNING);
+                    //            StandardUtilities.WriteToConsole("Description:" + Environment.NewLine + promptResponse.Description, StandardUtilities.Severity.DETAIL);
+                    //        }
+                    //    }
 
-                    }
+                    //}
+                    #endregion
+                    #region removed capability to generate a model/formula file for AI usage. This is now generated by iPaaS
+                    //else if (parsed[0].ToUpper() == "AIFILE")
+                    //{
+                    //    ; //Removed for check in
+                    //    if (string.IsNullOrEmpty(Settings.Instance.CompanyId))
+                    //        throw new Exception("The CompanyId setting is not specified in the appsettings.json file. This is required for the AIDEMO command.");
+
+                    //    // Check that the required parameters were passed in
+                    //    if (parsed.Length < 2 || parsed.Length > 3)
+                    //    {
+                    //        StandardUtilities.WriteToConsole("AIFILE requires mapping collection id: AIFILE <mappingCollectionId>", StandardUtilities.Severity.LOCAL);
+                    //        continue;
+                    //    }
+
+                    //    var mainCompany = Settings.Instance.Companies.Find(x => x.Id == Guid.Parse(Settings.Instance.CompanyId));
+                    //    DynamicFormulaHelper.GenerateFile(parsed[1], mainCompany.CompanySpecificFullToken);
+                    //}
+                    #endregion
                     else if (parsed[0].ToUpper() == "CONVERSIONFUNCTION" || parsed[0].ToUpper() == "CONVERSIONFUNCTIONS")
                     {
                         if (string.IsNullOrEmpty(Settings.Instance.IntegrationFileLocation))

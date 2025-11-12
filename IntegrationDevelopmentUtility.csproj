@@ -9,7 +9,7 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>net6.0</TargetFramework>
+    <TargetFramework>net8.0</TargetFramework>
     <UserSecretsId>0ff8df0a-d8e0-4306-9118-d4c927e7723c</UserSecretsId>
   </PropertyGroup>
 
@@ -40,7 +40,7 @@
     <PackageReference Include="GraphQL.Client" Version="6.0.0" />
     <PackageReference Include="GraphQL.Client.Serializer.Newtonsoft" Version="6.0.0" />
     <PackageReference Include="GraphQL.Primitives" Version="6.0.0" />
-    <PackageReference Include="iPaaS.Integration.SDK" Version="1.0.4-CI-20230823-203326" />
+    <PackageReference Include="iPaaS.Integration.SDK" Version="1.0.4-CI-20251103-144503" />
     <PackageReference Include="Microsoft.Extensions.Configuration" Version="8.0.0" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="8.0.0" />
     <PackageReference Include="Microsoft.Extensions.Configuration.FileExtensions" Version="8.0.0" />
