@@ -19,7 +19,7 @@ It is recommended to start with a new integration project.  If you have not done
  * [Configuration File](#configuration-file)
 
 ## Overview
-This tool provides three main features for developers looking to add an integration to the iPaaS.com platform:
+This tool provides several main features for developers looking to add an integration to the iPaaS.com platform:
 1. Upload a completed file to the iPaaS platform and run the requried steps to make the new file available for use.
 1. Run local tests against your integration 
 1. Run specific integration hooks and view the activity and technical log output as the hook is processed.
@@ -33,29 +33,30 @@ Parameters:
 ## Run local tests with your integration file
 Execute a specified test procedure in your DevelopmentTests class. We will instantiate a connection object similar to the object you would recieve during a normal iPaaS transfer.
 ```
-Usage: TEST MethodName [ExternalSystemId]
+Usage: TEST MethodName[(Parameters)] [ExternalSystemId]
 Parameters:
 MethodName            The name of a method in the DevelopmentTests class of your DLL. The method must meet the specified requirements for a 
                       development test method. See the documentation for a full list of the requirements.
+[(Parameters)]        A comma separated list of parameters to your method. These parameters must exist as string parameters to your method.
 [ExternalSystemId]    The system id for the external system you will be testing with. You may need to execute your development tests prior 
                       to having a system available. In that case, use system ID 0 to indicate a dummy system using the settigns specified 
                       in the configuration file. See the documentation for full details on this feature.
 ```
 ### Creating local test methods
-In your integration DLL, create a class called DevelopmentTests in the same namespace as your other Integration.Abstract classes. Create public static async methods that accept one parameter: an Integration.Abstract.Connection.
+In your integration DLL, create a class called DevelopmentTests in the same namespace as your other Integration.Abstract classes. Create public static async methods that accept an Integration.Abstract.Connection as the first parameter. You may include additional parameters as strings:
 Example:
 ```
-public static async Task GetCustomer(Integration.Abstract.Connection connection)
+public static async Task GetCustomer(Integration.Abstract.Connection connection, string CUST_NO)
 {
     var conn = (Connection)connection;
     var bcWrapper = conn.CallWrapper;
-    var jennaWatkins = bcWrapper.Customer_GET(164);
+    var jennaWatkins = bcWrapper.Customer_GET(CUST_NO);
     jennaWatkins.Company = "JennaTestCo";
     jennaWatkins.FormFields = null;
     bcWrapper.Customer_PUT(jennaWatkins);
 }
 ```
-To run that procedure, you would just use the command `TEST GetCustomer`. That would run the command on a pseudo-connection using your system_settings. To make the same call using the settings from a real system, just put the system id as the second parameter like `TEST GetCustomer 186`.
+To run that procedure, you would just use the command `TEST GetCustomer(1001)`. That would run the command on a pseudo-connection using your system_settings. To make the same call using the settings from a real system, just put the system id as the second parameter like `TEST GetCustomer(1001) 186`.
 ## Simulate transfer hooks
 Send a transfer request hook. This allows you to trigger a data transfer between your external system and iPaaS and view the log output as the transfer occurs. These commands run remotely, so the file you are testing must be uploaded already.
 ```
