@@ -26,7 +26,7 @@ namespace IntegrationDevelopmentUtility.DocumentationGenerator
 
             //First ensure we have an xml file. We will ensure permission and actual content later
             if (!XMLLocation.ToUpper().EndsWith(".XML"))
-                throw new Exception("XML Location must be a .xml file");
+                throw new Exception("XML Location must be an .xml file");
 
             //Now convert the destination type to a Type
 
