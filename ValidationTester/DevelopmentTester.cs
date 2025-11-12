@@ -1,7 +1,9 @@
-﻿using Integration.Abstract.Helpers;
+﻿using GraphQL.Types;
+using Integration.Abstract.Helpers;
 using IntegrationDevelopmentUtility.Utilities;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
@@ -63,7 +65,11 @@ namespace IntegrationDevelopmentUtility.ValidationTester
                 return;
             }
 
-            if(devTests == null)
+            //validate that the connection type matches the type specified in the file
+            ;
+
+
+            if (devTests == null)
             {
                 StandardUtilities.WriteToConsole($"The integration file does not include a class for named DevelopmentTests or it is not in the standard namespace. See the documentation for more details.", StandardUtilities.Severity.LOCAL_ERROR);
                 Program.OperationCancelled = true;
@@ -72,8 +78,20 @@ namespace IntegrationDevelopmentUtility.ValidationTester
             }
 
             Type devTestType = devTests.GetType();
-            MethodInfo theMethod = devTestType.GetMethod(methodName);
-            if(theMethod == null)
+            ParsedMethodDetails parsedMethodDetails = new ParsedMethodDetails(methodName);
+
+            //Add all the parameters to a parameter array so we can search for the correct method instance
+            var parameterArray = new object[parsedMethodDetails.Parameters.Count + 1];
+            parameterArray[0] = connection;
+            for(int i = 0; i < parsedMethodDetails.Parameters.Count; i++)
+            {
+                parameterArray[i + 1] = parsedMethodDetails.Parameters[i];
+            }
+
+            var theMethod = StandardUtilities.FindBestMethod(devTestType, parsedMethodDetails.Name, parameterArray);
+
+            //MethodInfo theMethod = devTestType.GetMethod(parsedMethodDetails.Name);
+            if (theMethod == null)
             {
                 Program.OperationCancelled = true;
                 Program.OperationCompleted = true;
@@ -82,11 +100,14 @@ namespace IntegrationDevelopmentUtility.ValidationTester
             }
 
             var theMethodParameters = theMethod.GetParameters();
-            if(theMethodParameters.Length != 1)
+            if(theMethodParameters.Length != parsedMethodDetails.Parameters.Count + 1)
             {
                 Program.OperationCancelled = true;
                 Program.OperationCompleted = true;
-                StandardUtilities.WriteToConsole("The method must accept only one parameter.", StandardUtilities.Severity.LOCAL_ERROR);
+                if(parsedMethodDetails.Parameters.Count == 0)
+                    StandardUtilities.WriteToConsole($"The method must accept only one parameter of the type Integration.Abstract.Connection.", StandardUtilities.Severity.LOCAL_ERROR);
+                else
+                    StandardUtilities.WriteToConsole($"The method parameter count does not match. Expected {parsedMethodDetails.Parameters.Count + 1} parameters but found {theMethodParameters.Length}.", StandardUtilities.Severity.LOCAL_ERROR);
                 return;
             }
 
@@ -100,8 +121,11 @@ namespace IntegrationDevelopmentUtility.ValidationTester
 
             CallContext.SetData("Connection", connection);
 
-            var methodParams = new object[1];
-            methodParams[0] = connection;
+            var methodParamList = new List<object>();
+            methodParamList.Add(connection); 
+            methodParamList.AddRange(parsedMethodDetails.Parameters);
+
+            var methodParams = methodParamList.ToArray();
 
             Task result = (Task)theMethod.Invoke(devTests, methodParams);
             result.GetAwaiter().GetResult();
@@ -110,5 +134,41 @@ namespace IntegrationDevelopmentUtility.ValidationTester
             if (connection.Settings.PersistentData != null && connection.Settings.PersistentData.Values != null && connection.Settings.PersistentData.Values.Count > 0)
                 iPaaSCallWrapper.PersistentData(connection.ExternalSystemId, connection.Settings.PersistentData.Values, company.CompanySpecificFullToken);
         }
+    }
+
+    public class ParsedMethodDetails
+    {
+        public ParsedMethodDetails(string nameAndParameters)
+        {
+            if (string.IsNullOrEmpty(nameAndParameters))
+                return;
+
+            if(nameAndParameters.IndexOf("(") == -1)
+            {
+                Name = nameAndParameters;
+                Parameters = new List<string>();
+                return;
+            }
+
+            Name = nameAndParameters.Substring(0, nameAndParameters.IndexOf("("));
+            var paramsString = nameAndParameters.Substring(nameAndParameters.IndexOf("(") + 1);
+            paramsString = paramsString.Substring(0, paramsString.Length - 1); //Remove trailing )
+            var splitParams = paramsString.Split(',');
+            Parameters = splitParams.ToList();
+
+            //For each parameter, trim whitespace and remove quotes if they exist
+            for(int i = 0; i < Parameters.Count; i++)
+            {
+                Parameters[i] = Parameters[i].Trim();
+                if(Parameters[i].StartsWith("\"") && Parameters[i].EndsWith("\""))
+                {
+                    Parameters[i] = Parameters[i].Substring(1, Parameters[i].Length - 2);
+                }
+            }
+
+        }
+
+        public string Name { get; set; }
+        public List<string> Parameters { get; set; }
     }
 }
