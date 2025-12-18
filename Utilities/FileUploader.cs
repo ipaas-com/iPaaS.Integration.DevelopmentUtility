@@ -103,11 +103,19 @@ namespace IntegrationDevelopmentUtility.Utilities
 
                 //Use the retrieved metadata to create the systemtypeversion request
                 request.Name = metaData.Info.Name;
-                request.DllName = metaData.Info.IntegrationFilename; //TODO: this should be the modified file name? Or update it after the filname is set?
+                request.DllName = metaData.Info.IntegrationFilename; //TODO: this should be the modified file name? Or update it after the filename is set?
                 request.DllNamespace = metaData.Info.IntegrationNamespace;
                 //request.Status = "Test";
                 request.VersionMajor = versionMajor;
                 request.VersionMinor = versionMinor;
+                request.VersionPatch = metaData.Info.VersionPatch;
+                request.OAuthIdentifierField = metaData.Info.OAuthIdentifierField;
+                request.OAuthSuccessCallbackField = metaData.Info.OAuthSuccessCallbackField;
+                request.OAuthUrlTemplate = metaData.Info.OAuthUrlTemplate;
+
+                request.CustomFields = new Dictionary<string, string>(); //Copy the custom field names
+                foreach (var customFieldName in metaData.Info.VersionCustomFieldNames)
+                    request.CustomFields.Add(customFieldName, null);
 
                 versionResponse = iPaaSCallWrapper.UploadFile(integrationId, fullFilePath, request, companyToken.AcessToken);
                 if (versionResponse == null)
