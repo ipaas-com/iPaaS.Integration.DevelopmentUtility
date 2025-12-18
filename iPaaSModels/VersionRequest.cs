@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Text.Json.Serialization;
 
 namespace IntegrationDevelopmentUtility.iPaaSModels
 {
@@ -31,6 +32,21 @@ namespace IntegrationDevelopmentUtility.iPaaSModels
 
         [JsonProperty("version_minor", Order = 20)]
         public int VersionMinor { get; set; }
+
+        [JsonProperty("version_patch", Order = 31)]
+        public int VersionPatch { get; set; }
+
+        [JsonProperty("oauth_url_template", Order = 35)]
+        public string OAuthUrlTemplate { get; set; }
+
+        [JsonProperty("oauth_identifier_field", Order = 40)]
+        public string OAuthIdentifierField { get; set; }
+
+        [JsonProperty("oauth_success_callback_field", Order = 42)]
+        public string OAuthSuccessCallbackField { get; set; }
+
+        [JsonProperty("custom_fields", Order = 45)]
+        public Dictionary<string, string> CustomFields { get; set; }
         #endregion
     }
 }

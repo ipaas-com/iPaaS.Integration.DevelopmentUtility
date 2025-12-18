@@ -31,6 +31,21 @@ namespace IntegrationDevelopmentUtility.iPaaSModels
 
         [JsonProperty("version_minor", Order = 35)]
         public int VersionMinor { get; set; }
+
+        [JsonProperty("version_patch", Order = 40)]
+        public int VersionPatch { get; set; }
+
+        [JsonProperty("oauth_url_template", Order = 45)]
+        public string OAuthUrlTemplate { get; set; }
+
+        [JsonProperty("oauth_identifier_field", Order = 50)]
+        public string OAuthIdentifierField { get; set; }
+
+        [JsonProperty("oauth_success_callback_field", Order = 55)]
+        public string OAuthSuccessCallbackField { get; set; }
+
+        [JsonProperty("custom_fields", Order = 60)]
+        public Dictionary<string, string> CustomFields { get; set; }
         #endregion
     }
 }
