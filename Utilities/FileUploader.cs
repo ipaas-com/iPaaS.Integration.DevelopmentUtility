@@ -113,9 +113,14 @@ namespace IntegrationDevelopmentUtility.Utilities
                 request.OAuthSuccessCallbackField = metaData.Info.OAuthSuccessCallbackField;
                 request.OAuthUrlTemplate = metaData.Info.OAuthUrlTemplate;
 
-                request.CustomFields = new Dictionary<string, string>(); //Copy the custom field names
-                foreach (var customFieldName in metaData.Info.VersionCustomFieldNames)
-                    request.CustomFields.Add(customFieldName, null);
+                //request.CustomFields = new Dictionary<string, string>(); //Copy the custom field names
+                //foreach (var customFieldName in metaData.Info.VersionCustomFieldNames)
+                //    request.CustomFields.Add(customFieldName, null);
+                request.CustomFields = new List<VersionCustomFieldRequest>();
+                foreach(var customFieldName in metaData.Info.VersionCustomFieldNames)
+                {
+                    request.CustomFields.Add(new VersionCustomFieldRequest(){Key = customFieldName,Value = null,AvailableInApi = true});
+                }
 
                 versionResponse = iPaaSCallWrapper.UploadFile(integrationId, fullFilePath, request, companyToken.AcessToken);
                 if (versionResponse == null)
