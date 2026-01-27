@@ -45,8 +45,12 @@ namespace IntegrationDevelopmentUtility.iPaaSModels
         [JsonProperty("oauth_success_callback_field", Order = 42)]
         public string OAuthSuccessCallbackField { get; set; }
 
+        //[JsonProperty("custom_fields", Order = 45)]
+        //public Dictionary<string, string> CustomFields { get; set; }
+
         [JsonProperty("custom_fields", Order = 45)]
-        public Dictionary<string, string> CustomFields { get; set; }
+        [JsonPropertyName("custom_fields"), JsonPropertyOrder(45)]
+        public List<VersionCustomFieldRequest> CustomFields { get; set; }
         #endregion
     }
 }

@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Text.Json.Serialization;
 
 namespace IntegrationDevelopmentUtility.iPaaSModels
 {
@@ -44,8 +45,12 @@ namespace IntegrationDevelopmentUtility.iPaaSModels
         [JsonProperty("oauth_success_callback_field", Order = 55)]
         public string OAuthSuccessCallbackField { get; set; }
 
-        [JsonProperty("custom_fields", Order = 60)]
-        public Dictionary<string, string> CustomFields { get; set; }
+        //[JsonProperty("custom_fields", Order = 60)]
+        //public Dictionary<string, string> CustomFields { get; set; }
+
+        [JsonProperty("custom_fields", Order = 45)]
+        [JsonPropertyName("custom_fields"), JsonPropertyOrder(45)]
+        public List<VersionCustomFieldRequest> CustomFields { get; set; }
         #endregion
     }
 }
