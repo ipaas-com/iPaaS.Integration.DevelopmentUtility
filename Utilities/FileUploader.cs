@@ -117,9 +117,12 @@ namespace IntegrationDevelopmentUtility.Utilities
                 //foreach (var customFieldName in metaData.Info.VersionCustomFieldNames)
                 //    request.CustomFields.Add(customFieldName, null);
                 request.CustomFields = new List<VersionCustomFieldRequest>();
-                foreach(var customFieldName in metaData.Info.VersionCustomFieldNames)
+                if(metaData.Info?.VersionCustomFieldNames != null)
                 {
-                    request.CustomFields.Add(new VersionCustomFieldRequest(){Key = customFieldName,Value = null,AvailableInApi = true});
+                    foreach (var customFieldName in metaData.Info.VersionCustomFieldNames)
+                    {
+                        request.CustomFields.Add(new VersionCustomFieldRequest() { Key = customFieldName, Value = null, AvailableInApi = true });
+                    }
                 }
 
                 versionResponse = iPaaSCallWrapper.UploadFile(integrationId, fullFilePath, request, companyToken.AcessToken);
