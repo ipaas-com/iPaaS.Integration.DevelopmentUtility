@@ -1,7 +1,6 @@
 ﻿using Azure;
 using IntegrationDevelopmentUtility.DocumentationGenerator;
 using IntegrationDevelopmentUtility.iPaaSModels;
-
 //using IntegrationDevelopmentUtility.OpenAI;
 using IntegrationDevelopmentUtility.Utilities;
 using Microsoft.Extensions.Configuration;
@@ -24,6 +23,7 @@ namespace IntegrationDevelopmentUtility
     {
         public static bool OperationCancelled = false;
         public static bool OperationCompleted = false;
+        public static bool IsCommandLineMode = false;
         public static Assembly AssemblyA;
 
         static async Task Main(string[] args)
@@ -62,12 +62,45 @@ namespace IntegrationDevelopmentUtility
                 StandardUtilities.CreateSystemZero();
             }
 
+            // If command-line arguments were provided, run that single command and exit.
+            // We use Environment.CommandLine instead of args to preserve the raw text
+            // (the C# runtime's arg parser strips quotes and splits on them).
+            string singleRunCommand = null;
+            if (args.Length > 0)
+            {
+                IsCommandLineMode = true;
+                var rawCommandLine = Environment.CommandLine;
+                // The exe path may be quoted or unquoted in the raw command line
+                var exePath = Environment.GetCommandLineArgs()[0];
+                int startIndex;
+                if (rawCommandLine.StartsWith("\""))
+                    startIndex = rawCommandLine.IndexOf("\"", 1) + 1; // skip past closing quote
+                else
+                    startIndex = exePath.Length;
+                singleRunCommand = rawCommandLine.Substring(startIndex).Trim();
+            }
+
+            bool singleRunExecuted = false;
             while (true)
             {
-                Console.WriteLine("Enter test command (UPLOAD, HOOK, TEST, BUILDMODELS):");
-                var resp = Console.ReadLine();
-                if (resp == null)
-                    continue;
+                // If running a single command from args, exit after one iteration
+                if (singleRunCommand != null && singleRunExecuted)
+                    break;
+
+                string resp;
+                if (singleRunCommand != null)
+                {
+                    resp = singleRunCommand;
+                    singleRunExecuted = true;
+                    StandardUtilities.WriteToConsole($"Executing: {resp}", StandardUtilities.Severity.LOCAL);
+                }
+                else
+                {
+                    Console.WriteLine("Enter test command (UPLOAD, HOOK, TEST, BUILDMODELS):");
+                    resp = Console.ReadLine();
+                    if (resp == null)
+                        continue;
+                }
 
                 resp = resp.Trim(); //remove any leading or trailing white space
                 OperationCancelled = false;
@@ -185,9 +218,14 @@ namespace IntegrationDevelopmentUtility
                     }
                     else if (parsed[0].ToUpper() == "HOOK")
                     {
+                        // Check for /LOG flag and remove it from the args
+                        bool enableLog = parsed.Any(p => p.Equals("/LOG", StringComparison.OrdinalIgnoreCase));
+                        if (enableLog)
+                            parsed = parsed.Where(p => !p.Equals("/LOG", StringComparison.OrdinalIgnoreCase)).ToArray();
+
                         if (parsed.Length != 5)
                         {
-                            StandardUtilities.WriteToConsole("HOOK usage (all parameters should be enclosed in quotes): HOOK \"<System id>\" \"<Scope>\" \"<External Id>\" \"<Direction>\". Run HOOK /? for full usage details.", StandardUtilities.Severity.LOCAL);
+                            StandardUtilities.WriteToConsole("HOOK usage (all parameters should be enclosed in quotes): HOOK \"<System id>\" \"<Scope>\" \"<External Id>\" \"<Direction>\" [/LOG]. Run HOOK /? for full usage details.", StandardUtilities.Severity.LOCAL);
                             continue;
                         }
 
@@ -205,7 +243,21 @@ namespace IntegrationDevelopmentUtility
                         //Clear the console so the hook will have clean output
                         Console.Clear();
 
-                        RunHookLocal(parsed);
+                        if (enableLog)
+                        {
+                            var scope = parsed[2].Replace("/", "_");
+                            var logFileName = StandardUtilities.GenerateLogFilePath($"System{parsed[1]}_{scope}_{parsed[3]}_{parsed[4]}");
+                            StandardUtilities.OpenLogFile(logFileName);
+                        }
+
+                        try
+                        {
+                            RunHookLocal(parsed);
+                        }
+                        finally
+                        {
+                            StandardUtilities.CloseLogFile();
+                        }
 
                         #region removed code
                         //var thread = new Thread(() => RunHookLocal(parsed));
@@ -249,9 +301,14 @@ namespace IntegrationDevelopmentUtility
                     }
                     else if (parsed[0].ToUpper() == "TEST")
                     {
+                        // Check for /LOG flag and remove it from the args
+                        bool enableLog = parsed.Any(p => p.Equals("/LOG", StringComparison.OrdinalIgnoreCase));
+                        if (enableLog)
+                            parsed = parsed.Where(p => !p.Equals("/LOG", StringComparison.OrdinalIgnoreCase)).ToArray();
+
                         if (parsed.Length < 3)
                         {
-                            StandardUtilities.WriteToConsole("TEST usage: TEST <Method Name> <System Id>   Note: to use the configuration file settings, specify system 0. Run TEST /? for more details.", StandardUtilities.Severity.LOCAL);
+                            StandardUtilities.WriteToConsole("TEST usage: TEST <Method Name> <System Id> [/LOG]   Note: to use the configuration file settings, specify system 0. Run TEST /? for more details.", StandardUtilities.Severity.LOCAL);
                             continue;
                         }
 
@@ -259,7 +316,7 @@ namespace IntegrationDevelopmentUtility
                         var lastParameterStr = parsed[parsed.Length - 1];
                         if(!Int64.TryParse(lastParameterStr, out var systemId))
                         {
-                            StandardUtilities.WriteToConsole("TEST usage: TEST <Method Name> <System Id>   Note: to use the configuration file settings, specify system 0. Run TEST /? for more details.", StandardUtilities.Severity.LOCAL);
+                            StandardUtilities.WriteToConsole("TEST usage: TEST <Method Name> <System Id> [/LOG]   Note: to use the configuration file settings, specify system 0. Run TEST /? for more details.", StandardUtilities.Severity.LOCAL);
                             continue;
                         }
 
@@ -273,7 +330,24 @@ namespace IntegrationDevelopmentUtility
                             methodName += parsed[i];
                         }
 
-                        await ValidationTester.DevelopmentTester.ExecuteTestCase(methodName, systemId);
+                        if (enableLog)
+                        {
+                            var sanitizedMethodName = methodName.Replace("(", "_").Replace(")", "").Replace(",", "_").Replace(" ", "");
+                            var logFileName = StandardUtilities.GenerateLogFilePath($"Test_{sanitizedMethodName}");
+                            StandardUtilities.OpenLogFile(logFileName);
+                        }
+
+                        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+                        try
+                        {
+                            await ValidationTester.DevelopmentTester.ExecuteTestCase(methodName, systemId);
+                        }
+                        finally
+                        {
+                            stopwatch.Stop();
+                            StandardUtilities.WriteToConsole($"Total runtime: {stopwatch.Elapsed.ToString(@"hh\:mm\:ss\.fff")}", StandardUtilities.Severity.LOCAL);
+                            StandardUtilities.CloseLogFile();
+                        }
                     }
                     else if (parsed[0].ToUpper() == "APIKEYS")
                     {
@@ -582,6 +656,7 @@ namespace IntegrationDevelopmentUtility
                     StandardUtilities.WriteToConsole("An error occurred running the command " + resp, StandardUtilities.Severity.LOCAL_ERROR);
                     StandardUtilities.WriteToConsole(ex, StandardUtilities.Severity.LOCAL_ERROR);
                 }
+
             }
 
             //SendHookAndListenForLogBUILDMODELS(1796, "product/updated", "275078", "FROM");
@@ -744,4 +819,3 @@ namespace IntegrationDevelopmentUtility
         }
     }
 }
-

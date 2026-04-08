@@ -96,6 +96,8 @@ namespace IntegrationDevelopmentUtility.ValidationTester
                 Program.OperationCancelled = true;
                 Program.OperationCompleted = true;
                 StandardUtilities.WriteToConsole($"The method name \"{methodName}\" does not exist.", StandardUtilities.Severity.LOCAL_ERROR);
+                if (Program.IsCommandLineMode && methodName.Contains(" ") && !methodName.Contains("("))
+                    StandardUtilities.WriteToConsole("Hint: PowerShell may have stripped parentheses and quotes from your method parameters. Try using the stop-parsing token: .\\IntegrationDevelopmentUtility.exe --% TEST YourMethod(\"param\") 892 /LOG", StandardUtilities.Severity.WARNING);
                 return;
             }
 

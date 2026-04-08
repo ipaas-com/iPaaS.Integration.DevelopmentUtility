@@ -1,0 +1,26 @@
+## .NET
+bin/
+obj/
+*.user
+*.suo
+*.userprefs
+
+## Visual Studio
+.vs/
+
+## IDE
+.vscode/
+.idea/
+
+## Claude Code
+.claude/
+
+## Sensitive config
+appsettings.json
+
+## OS
+Thumbs.db
+.DS_Store
+
+## Logs (generated at runtime)
+Logs/

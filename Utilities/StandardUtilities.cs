@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Security;
@@ -21,6 +22,32 @@ namespace IntegrationDevelopmentUtility.Utilities
             VERBOSE,
             LOCAL,
             LOCAL_ERROR
+        }
+
+        private static StreamWriter _activeLogWriter;
+        private static string _activeLogFilePath;
+
+        public static void OpenLogFile(string filePath)
+        {
+            var directory = Path.GetDirectoryName(filePath);
+            if (!string.IsNullOrEmpty(directory))
+                Directory.CreateDirectory(directory);
+
+            _activeLogFilePath = Path.GetFullPath(filePath);
+            _activeLogWriter = new StreamWriter(filePath, append: false, encoding: Encoding.UTF8) { AutoFlush = true };
+            WriteToConsole($"Logging output to: {_activeLogFilePath}", Severity.LOCAL);
+        }
+
+        public static void CloseLogFile()
+        {
+            if (_activeLogWriter != null)
+            {
+                _activeLogWriter.Flush();
+                _activeLogWriter.Dispose();
+                _activeLogWriter = null;
+                WriteToConsole($"Log file saved to: {_activeLogFilePath}", Severity.LOCAL);
+                _activeLogFilePath = null;
+            }
         }
 
         public static void WriteToConsole(Exception ex, Severity severity)
@@ -51,6 +78,21 @@ namespace IntegrationDevelopmentUtility.Utilities
 
             Console.WriteLine($"{message}");
             Console.ResetColor();
+
+            if (_activeLogWriter != null)
+            {
+                var logLine = string.IsNullOrEmpty(uncoloredPrefix)
+                    ? message
+                    : uncoloredPrefix + message;
+                _activeLogWriter.WriteLine(logLine);
+            }
+        }
+
+        public static string GenerateLogFilePath(string baseName)
+        {
+            var timestamp = DateTime.Now.ToString("yyyyMMdd_HHmm");
+            var sanitized = string.Join("_", baseName.Split(Path.GetInvalidFileNameChars()));
+            return Path.Combine("Logs", $"{sanitized}_{timestamp}.txt");
         }
 
         public static string HookTokenForSystem(long systemId)
@@ -373,24 +415,26 @@ namespace IntegrationDevelopmentUtility.Utilities
             {
                 var hookUsage = new UsageDisplay();
                 hookUsage.Description = "Send a transfer request hook. This allows you to trigger a BUILDMODELS transfer between your external system and iPaaS and view the log output as the transfer occurs.";
-                hookUsage.UsageSummary = "Usage: HOOK \"<ExternalSystemId>\" \"<HookType>\" \"<ExternalId>\" \"<Direction>\"";
-                hookUsage.Example = "Example: HOOK \"1795\" \"product/updated/debug\" \"105098\" \"TO\"";
+                hookUsage.UsageSummary = "Usage: HOOK \"<ExternalSystemId>\" \"<HookType>\" \"<ExternalId>\" \"<Direction>\" [/LOG]";
+                hookUsage.Example = "Example: HOOK \"1795\" \"product/updated/debug\" \"105098\" \"TO\" /LOG";
                 hookUsage.PreparamInstruction = "All parameters must be in the order specified above and must be enclosed in double quotes. Embedded quotes inside a value should be slash-escaped (e.g. \"{\\\"ITEM_NO\\\":\\\"ADM-TL2\\\"}\")";
                 hookUsage.Parameters.Add(new UsageDisplayParameter() { Name = "ExternalSystemId", Description = "The system id for the external system you will be interacting with" });
                 hookUsage.Parameters.Add(new UsageDisplayParameter() { Name = "HookType", Description = "The hook scope that you will be using. The value used may come from the list of iPaaS scopes or from the external system's list, depending on the direction of the transfer. Most scopes accept an appended /debug flag. This will trigger iPaaS to include more detailed technical information in the displayed log BUILDMODELS." });
                 hookUsage.Parameters.Add(new UsageDisplayParameter() { Name = "ExternaId", Description = "The id for the BUILDMODELS that you are transferring. " });
                 hookUsage.Parameters.Add(new UsageDisplayParameter() { Name = "Direction", Description = "The direction of the transfer you are requesting. This value must be TO (for BUILDMODELS being transferred to iPaaS) or FROM (for BUILDMODELS being transferred from iPaaS)." });
+                hookUsage.Parameters.Add(new UsageDisplayParameter() { Name = "/LOG", Description = "Optional. When specified, all output will also be written to a log file in the Logs subfolder." });
                 hookUsage.PrintToConsole();
             }
             else if (command.ToUpper() == "TEST")
             {
                 var hookUsage = new UsageDisplay();
                 hookUsage.Description = "Execute a specified test procedure in your DevelopmentTests class. We will instantiate a connection object similar to the object you would recieve during a normal iPaaS transfer.";
-                hookUsage.UsageSummary = "Usage: TEST <MethodName> <ExternalSystemId>";
-                hookUsage.Example = "Example: TEST GetCustomer 1796";
+                hookUsage.UsageSummary = "Usage: TEST <MethodName> <ExternalSystemId> [/LOG]";
+                hookUsage.Example = "Example: TEST GetCustomer 1796 /LOG";
                 hookUsage.PreparamInstruction = "All parameters must be in the order specified above.";
                 hookUsage.Parameters.Add(new UsageDisplayParameter() { Name = "MethodName", Description = "The name of a method in the DevelopmentTests class of your DLL. The method must meet the specified requirements for a development test method. See the documentation for a full list of the requirements." });
                 hookUsage.Parameters.Add(new UsageDisplayParameter() { Name = "ExternalSystemId", Description = "The system id for the external system you will be testing with. You may need to execute your development tests prior to having a system available. In that case, use system ID 0 to indicate a dummy system using the settigns specified in the configuration file. See the documentation for full details on this feature." });
+                hookUsage.Parameters.Add(new UsageDisplayParameter() { Name = "/LOG", Description = "Optional. When specified, all output will also be written to a log file in the Logs subfolder." });
                 hookUsage.PrintToConsole();
             }
             else if (command.ToUpper() == "UPLOAD")
@@ -497,6 +541,13 @@ namespace IntegrationDevelopmentUtility.Utilities
             }
         }
 
+        /// <summary>
+        /// Find the method that best matches the arguments passed
+        /// </summary>
+        /// <param name="type"></param>
+        /// <param name="name"></param>
+        /// <param name="args"></param>
+        /// <returns></returns>
         public static MethodInfo FindBestMethod(Type type, string name, object[] args)
         {
             var candidates = type
