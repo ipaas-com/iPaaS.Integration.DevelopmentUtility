@@ -15,5 +15,8 @@ namespace IntegrationDevelopmentUtility.iPaaSModels
 
         [JsonProperty("expiration_date_time", Order = 30)]
         public DateTimeOffset? ExpirationDateTime { get; set; }
+
+        [JsonProperty("editable_in_ui", Order = 30)]
+        public bool? EditableInUI { get; set; }
     }
 }

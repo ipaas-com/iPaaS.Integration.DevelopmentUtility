@@ -203,7 +203,7 @@ namespace IntegrationDevelopmentUtility.Utilities
         {
             var persistentDataRequest = new List<PersistentDataRequest>();
             foreach (var persistentDatum in persistentData)
-                persistentDataRequest.Add(new PersistentDataRequest() { Name = persistentDatum.Name, Value = persistentDatum.Value, ExpirationDateTime = persistentDatum.ExpirationDateTime });
+                persistentDataRequest.Add(new PersistentDataRequest() { Name = persistentDatum.Name, Value = persistentDatum.Value, ExpirationDateTime = persistentDatum.ExpirationDateTime, EditableInUI = persistentDatum.EditableInUI });
 
             var apiCall = new iPaaSApiCall("/v2/Subscription/PersistentData/{id}", companyToken, iPaaSApiCall.ApiType.Subscription, typeof(List<PersistentDataResponse>), RestSharp.Method.Post);
 

@@ -66,7 +66,7 @@ namespace IntegrationDevelopmentUtility.ValidationTester
             // Load PersistentData
             if (settings.PersistentData != null)
                 foreach (var persistentDatum in settings.PersistentData)
-                    connection.Settings.PersistentData.Values.Add(new Integration.Abstract.Model.PersistentData() { Name = persistentDatum.Name, Value = persistentDatum.Value, ExpirationDateTime = persistentDatum.ExpirationDateTime });
+                    connection.Settings.PersistentData.Values.Add(new Integration.Abstract.Model.PersistentData() { Name = persistentDatum.Name, Value = persistentDatum.Value, ExpirationDateTime = persistentDatum.ExpirationDateTime, EditableInUI = persistentDatum.EditableInUI  });
 
             ApplySettings(connection.Settings, apiToken.AcessToken);
 

@@ -65,7 +65,7 @@ namespace IntegrationDevelopmentUtility.Utilities
             CUSTOMER_RELATIONSHIP = 52,
             CUSTOMER_COMPANY_CATEGORY = 53,
             LOCATION_ADDRESS = 54,
-            LCOATION_GROUP_LOCATION_ASSIGNMENT = 55,
+            LOCATION_GROUP_LOCATION_ASSIGNMENT = 55,
             CATEGORY_SET_CATEGORY_ASSIGNMENT = 56,
             CUSTOMER_CATEGORY_ASSIGNMENT = 57,
             COMPANY_CATEGORY_ASSIGNMENT = 58,
@@ -73,6 +73,7 @@ namespace IntegrationDevelopmentUtility.Utilities
             IMAGE_ASSIGNMENT = 60,
             BULK_PRICE = 61,
             BULK_PRICE_ASSIGNMENT = 62,
+            LOCATION_RELATIONSHIP = 63,
         }
     }
 }
