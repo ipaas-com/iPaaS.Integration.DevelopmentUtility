@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Text.Json.Serialization;
 
 namespace IntegrationDevelopmentUtility.iPaaSModels
 {
@@ -28,6 +29,8 @@ namespace IntegrationDevelopmentUtility.iPaaSModels
         [JsonProperty("userType", Order = 35)]
         public int? User_Type { get; set; }
 
+        [JsonProperty("client_id", Order = 2)]
+        public Guid ClientId { get; set; }
 
         //The following properties are not part of the response, but we save them as we process each company
         public FullToken CompanySpecificFullToken;
@@ -50,6 +53,7 @@ namespace IntegrationDevelopmentUtility.iPaaSModels
             this.Logo = userCompanyResponse.Logo;
             this.Designation = designation;
             this.User_Type = userCompanyResponse.UserTypeId;
+            this.ClientId = userCompanyResponse.ClientId;
         }
     }
 }

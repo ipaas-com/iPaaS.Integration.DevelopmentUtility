@@ -13,7 +13,7 @@ namespace IntegrationDevelopmentUtility.ValidationTester
         //This call is responsible for creating an empty, ready-to-use connection. That includes loading the external assembly, instantiating all the types, 
         //  and assigning delegate function references. 
         //It does NOT make any external calls. That should all be handled in the ConnectionManager.
-        public static async Task<Tuple<Integration.Abstract.Connection, object>> Create(string assemblyPath, string dllNamespace, SubscriptionResponse settings, FullToken apiToken, long iPaaSSystemId, Guid companyId)
+        public static async Task<Tuple<Integration.Abstract.Connection, object>> Create(string assemblyPath, string dllNamespace, SubscriptionResponse settings, FullToken apiToken, long iPaaSSystemId, Guid companyId, Guid companyClientId)
         {
             // Use the file name to load the assembly into the current
             // application domain.
@@ -76,6 +76,7 @@ namespace IntegrationDevelopmentUtility.ValidationTester
             connection.Settings.Name = settings.Name;
             connection.Settings.WebhookApiKey = settings.WebhookApiKey;
             connection.Settings.CompanyId = Convert.ToString(companyId);
+            connection.Settings.CompanyClientId = companyClientId;
 
             // Now we register the delegate functions
             connection.DataHandlerFunctionAsync = CreateConnection.ExternalDataHandlerAsync;

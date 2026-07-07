@@ -44,7 +44,7 @@ namespace IntegrationDevelopmentUtility.ValidationTester
             //UploadFile(fileLocation);
             try
             {
-                var tupleResults = await ValidationTester.CreateConnection.Create(Settings.Instance.IntegrationFileLocation, "", system, company.CompanySpecificFullToken, company.iPaaSSystemId, company.Id);
+                var tupleResults = await ValidationTester.CreateConnection.Create(Settings.Instance.IntegrationFileLocation, "", system, company.CompanySpecificFullToken, company.iPaaSSystemId, company.Id, company.ClientId);
                 connection = tupleResults.Item1;
                 devTests = tupleResults.Item2;
             }

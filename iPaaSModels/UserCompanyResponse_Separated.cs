@@ -23,6 +23,9 @@ namespace IntegrationDevelopmentUtility.iPaaSModels
         [JsonProperty("user_type_id", Order = 30)]
         public int? UserTypeId { get; set; }
 
+        [JsonProperty("client_id", Order = 33)]
+        public Guid ClientId { get; set; }
+
         [JsonProperty("designations", Order = 35)]
         public Dictionary<long, string> Designations { get; set; }
         #endregion
