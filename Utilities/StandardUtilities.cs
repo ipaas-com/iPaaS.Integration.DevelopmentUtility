@@ -198,6 +198,9 @@ namespace IntegrationDevelopmentUtility.Utilities
             if (loginResponse == null)
                 return false;
 
+            //If the login response's id is a guid, we are in v3. If it is a long, we are in v2.
+            var useV3 = Guid.TryParse(loginResponse.Id, out Guid result);
+
             StandardUtilities.WriteToConsole("Initial Login Complete", StandardUtilities.Severity.LOCAL);
 
             //Save the default token for this user
@@ -224,7 +227,7 @@ namespace IntegrationDevelopmentUtility.Utilities
             foreach (var company in companyResponse.AdminCompanies)
             {
                 //Change the login to the current company so we get a company specific token
-                var companyLoginResponse = iPaaSCallWrapper.ChangeCompany(Convert.ToString(company.Id));
+                var companyLoginResponse = iPaaSCallWrapper.ChangeCompany(Convert.ToString(company.Id), useV3);
                 //Save the token specific to this company
                 company.CompanySpecificFullToken = new FullToken(companyLoginResponse.AccessToken, companyLoginResponse.AccessTokenExpiration, companyLoginResponse.RefreshToken);
                 Settings.Instance.Companies.Add(company);
@@ -279,7 +282,7 @@ namespace IntegrationDevelopmentUtility.Utilities
 
             foreach (var company in Settings.Instance.Companies)
             {
-                var curTask = Task.Run(async () => await LoginToACompany(company.Id));
+                var curTask = Task.Run(async () => await LoginToACompany(company.Id, useV3));
                 curTask.GetAwaiter().GetResult();
             }
 
@@ -291,14 +294,14 @@ namespace IntegrationDevelopmentUtility.Utilities
         }
 
         //To speed up logins for users with dozens of companies (e.g. super users), we login async and run several in parallel
-        public static async Task LoginToACompany(Guid companyId)
+        public static async Task LoginToACompany(Guid companyId, bool useV3 = false)
         {
             //StandardUtilities.WriteToConsole("Starting LoginToACompany for company " + companyId.ToString(), StandardUtilities.Severity.LOCAL);
 
             var company = Settings.Instance.Companies.Find(x => x.Id == companyId);
 
             //Change the login to the current company so we get a company specific token
-            var companyLoginResponse = iPaaSCallWrapper.ChangeCompany(Convert.ToString(company.Id));
+            var companyLoginResponse = iPaaSCallWrapper.ChangeCompany(Convert.ToString(company.Id), useV3);
 
             //If the call above fails, we have nothing further to do.
             if (companyLoginResponse == null)

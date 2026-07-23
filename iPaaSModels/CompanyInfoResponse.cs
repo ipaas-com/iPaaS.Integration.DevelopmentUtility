@@ -29,6 +29,7 @@ namespace IntegrationDevelopmentUtility.iPaaSModels
         [JsonProperty("userType", Order = 35)]
         public int? User_Type { get; set; }
 
+        //This will always be Guid.Empty for local runs. The IDU uses a user token, which does not require the client id param. 
         [JsonProperty("client_id", Order = 2)]
         public Guid ClientId { get; set; }
 
@@ -53,7 +54,7 @@ namespace IntegrationDevelopmentUtility.iPaaSModels
             this.Logo = userCompanyResponse.Logo;
             this.Designation = designation;
             this.User_Type = userCompanyResponse.UserTypeId;
-            this.ClientId = userCompanyResponse.ClientId;
+            this.ClientId = Guid.Empty; //We do not recieve a client id here 
         }
     }
 }

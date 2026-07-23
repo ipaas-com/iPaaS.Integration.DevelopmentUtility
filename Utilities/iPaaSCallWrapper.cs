@@ -38,11 +38,19 @@ namespace IntegrationDevelopmentUtility.Utilities
             return response;
         }
 
-        public static LoginResponse ChangeCompany(string companyId)
+        public static LoginResponse ChangeCompany(string companyId, bool useV3 = false)
         {
-            var apiCall = new iPaaSApiCall("/v2/User/ChangeCompany/{id}", Utilities.Settings.Instance.DefaultFullToken, iPaaSApiCall.ApiType.SSO, typeof(LoginResponse), RestSharp.Method.Get);
+            var requestMethod = RestSharp.Method.Get;
+            if (useV3)
+                requestMethod = RestSharp.Method.Post;
+
+            var apiCall = new iPaaSApiCall("/v2/User/ChangeCompany/{id}", Utilities.Settings.Instance.DefaultFullToken, iPaaSApiCall.ApiType.SSO, typeof(LoginResponse), requestMethod);
 
             apiCall.AddParameter("id", companyId, RestSharp.ParameterType.UrlSegment);
+
+            //The v3 instance requires the refreshtoken as well
+            if (useV3)
+                apiCall.AddBodyParameter(new RefreshRequest() { RefreshToken = Utilities.Settings.Instance.DefaultFullToken.RefreshToken });
 
             var taskLogin = Task.Run(async () => await apiCall.ProcessRequest());
             var response = (LoginResponse)taskLogin.GetAwaiter().GetResult();

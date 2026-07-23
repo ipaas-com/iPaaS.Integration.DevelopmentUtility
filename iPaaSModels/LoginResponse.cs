@@ -9,7 +9,7 @@ namespace IntegrationDevelopmentUtility.iPaaSModels
     {
         #region Properties
         [JsonProperty("id", Order = 5)]
-        public long? Id { get; set; }
+        public string Id { get; set; }
 
         [JsonProperty("name", Order = 10)]
         public string Name { get; set; }
