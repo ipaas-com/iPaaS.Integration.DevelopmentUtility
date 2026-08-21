@@ -20,12 +20,17 @@ namespace IntegrationDevelopmentUtility.DocumentationGenerator
             SendToDatabase
         }
 
-        public static async Task TurnXMLIntoOutput(string dllLocation, string XMLLocation, string destinationTypeStr, string outputTypeStr, string systemTypeVersionId)
+        public static async Task TurnXMLIntoOutput(string dllLocation, string XMLLocation, string destinationTypeStr, string outputTypeStr, string systemTypeVersionId, bool updateOnly = false)
         {
             //We need to validate and convert our parameters.
 
+            //An empty location means we are running from the assembly alone. Only descriptions and the
+            //DONOTEXPORT flag come from the XML, so this is viable for refreshing values read from the
+            //assembly (parameter names, types, IsRequired) - but only when we cannot create.
+            if (updateOnly && string.IsNullOrEmpty(XMLLocation))
+                XMLLocation = null;
             //First ensure we have an xml file. We will ensure permission and actual content later
-            if (!XMLLocation.ToUpper().EndsWith(".XML"))
+            else if (!XMLLocation.ToUpper().EndsWith(".XML"))
                 throw new Exception("XML Location must be an .xml file");
 
             //Now convert the destination type to a Type
@@ -62,6 +67,12 @@ namespace IntegrationDevelopmentUtility.DocumentationGenerator
                 if(!matchingCompany.IsIntegrator)
                     throw new Exception($"Company specified must be an integrator {Settings.Instance.CompanyId}");
 
+                //The version is required for an upload. Rather than failing on a null reference below, work out
+                //what the caller could have meant: if there is exactly one candidate we use it, and if there are
+                //several we list them so the user knows what to pass.
+                if (string.IsNullOrEmpty(systemTypeVersionId))
+                    systemTypeVersionId = ResolveSystemTypeVersionId(matchingCompany);
+
                 //We need to find a system that matches our version type. Unfortunately we hvae to combine a few pieces of information to find this. Matchingcompany.systems will let us find everything for this company
                 //by type, then we need to look through Settings.Instance.Systems to find one with the right version.
                 var systemTypeId = systemTypeVersionId.Substring(0, systemTypeVersionId.LastIndexOf("|"));
@@ -84,24 +95,38 @@ namespace IntegrationDevelopmentUtility.DocumentationGenerator
                 systemToken = StandardUtilities.ApiTokenForSystem(matchingSystem.Id);
             }
 
-            await TurnXMLIntoOutput(XMLLocation, destinationType, outputType, systemTypeVersionId, systemToken);
+            await TurnXMLIntoOutput(XMLLocation, destinationType, outputType, systemTypeVersionId, systemToken, updateOnly);
         }
 
 
-        public static async Task TurnXMLIntoOutput(string XMLLocation, Type destinationType, OutputType outputType, string systemTypeVersionId = null, FullToken systemToken = null)
+        public static async Task TurnXMLIntoOutput(string XMLLocation, Type destinationType, OutputType outputType, string systemTypeVersionId = null, FullToken systemToken = null, bool updateOnly = false)
         {
             //string docuPath = dllPath.Substring(0, dllPath.LastIndexOf(".")) + ".XML";
 
+            //No location means no documentation: the assembly alone supplies the formulas. That is only
+            //safe when we cannot create, since DONOTEXPORT lives in the XML.
+            var hasDocumentation = !string.IsNullOrEmpty(XMLLocation);
+            if (!hasDocumentation && !updateOnly)
+                throw new Exception("An XML documentation file is required unless the run is update-only. "
+                    + "Without it we cannot honor the DONOTEXPORT flag, so internal helper methods would be "
+                    + "published as conversion functions.");
+
             var _docuDoc = new XmlDocument();
-            try
+            if (hasDocumentation)
             {
-                _docuDoc.Load(XMLLocation);
+                try
+                {
+                    _docuDoc.Load(XMLLocation);
+                }
+                catch(Exception ex)
+                {
+                    //Turn the exception into something more readable.
+                    throw new Exception($"Documentation.TurnXMLIntoOutput - Unable to load XML file {XMLLocation}: {ex.Message}", ex);
+                }
             }
-            catch(Exception ex)
-            {
-                //Turn the exception into something more readable.
-                throw new Exception($"Documentation.TurnXMLIntoOutput - Unable to load XML file {XMLLocation}: {ex.Message}", ex);
-            }
+
+            var uploaded = 0;
+            var skipped = new List<string>();
 
             //Start with the methods as enumerated in the desired type. Note that we do not start with the XML file, since that will exclude methods
             //  without any comments, exclude parameters without comments, etc.
@@ -113,7 +138,9 @@ namespace IntegrationDevelopmentUtility.DocumentationGenerator
                     continue;
 
                 string path = "M:" + mi.DeclaringType.FullName + "." + mi.Name;
-                XmlNode xmlDocuOfMethod = _docuDoc.SelectSingleNode("//member[starts-with(@name, '" + path + "')]");
+                XmlNode xmlDocuOfMethod = hasDocumentation
+                    ? _docuDoc.SelectSingleNode("//member[starts-with(@name, '" + path + "')]")
+                    : null;
 
                 var methodDoc = new MethodDocumentation();
                 methodDoc.Name = mi.Name;
@@ -168,7 +195,8 @@ namespace IntegrationDevelopmentUtility.DocumentationGenerator
                 else
                     methodDoc.Status = 1; //Mark as active
 
-                //The DONOTEXPORT flag allows us to skip helper or internal-use methods
+                //The DONOTEXPORT flag allows us to skip helper or internal-use methods. Without an XML file
+                //Remarks is always null, so this cannot filter - update-only mode is what protects us there.
                 if (string.IsNullOrEmpty(methodDoc.Remarks) || methodDoc.Remarks != "DONOTEXPORT")
                 {
                     if (outputType == OutputType.Wiki)
@@ -176,7 +204,27 @@ namespace IntegrationDevelopmentUtility.DocumentationGenerator
                     else if (outputType == OutputType.CSV)
                         methodDoc.ToCsvString();
                     else if (outputType == OutputType.SendToDatabase)
-                        methodDoc.ToAPI(systemTypeVersionId, systemToken);
+                    {
+                        //Note this is awaited. It used to be fire-and-forget (async void), which meant
+                        //failures were unobservable and the process could exit mid-upload.
+                        if (await methodDoc.ToAPI(systemTypeVersionId, systemToken, updateOnly))
+                            uploaded++;
+                        else
+                            skipped.Add(methodDoc.Name);
+                    }
+                }
+            }
+
+            if (outputType == OutputType.SendToDatabase)
+            {
+                StandardUtilities.WriteToConsole($"Updated {uploaded} formula(s).", StandardUtilities.Severity.LOCAL);
+                if (skipped.Count > 0)
+                {
+                    //In update-only mode these are the methods with no existing formula for this version.
+                    //They need a run with the XML file present before they can be created.
+                    StandardUtilities.WriteToConsole($"Skipped {skipped.Count} method(s) with no existing formula to update:", StandardUtilities.Severity.LOCAL);
+                    foreach (var name in skipped)
+                        StandardUtilities.WriteToConsole($"     {name}", StandardUtilities.Severity.LOCAL);
                 }
             }
         }
@@ -195,6 +243,102 @@ namespace IntegrationDevelopmentUtility.DocumentationGenerator
                 return false;
 
             return true;
+        }
+
+        /// <summary>
+        /// Work out which system type version an upload should target when the caller did not specify one.
+        /// Only versions the company actually has a system for are candidates, since those are the only
+        /// values that would pass the validation below. Returns the id when it is unambiguous, otherwise
+        /// throws with the list of valid choices.
+        /// </summary>
+        private static string ResolveSystemTypeVersionId(CompanyInfoResponse matchingCompany)
+        {
+            //Match the company's systems up to the loaded subscription records so we can read their version ids.
+            var candidates = new List<SubscriptionResponse>();
+            foreach (var companySystem in matchingCompany.Systems ?? new List<SubscriptionGetAllResponse>())
+            {
+                var system = Settings.Instance.Systems.Find(x => x.Id == companySystem.Id);
+                if (system != null && !string.IsNullOrEmpty(system.IntegrationVersionId)
+                    && !candidates.Exists(x => x.IntegrationVersionId == system.IntegrationVersionId))
+                    candidates.Add(system);
+            }
+
+            //We are uploading the conversion functions for one integration, so only that integration's versions
+            //are relevant. Without this the list would include every unrelated system the company happens to own.
+            if (Settings.Instance.IntegrationFileIntegrationId.HasValue && Settings.Instance.IntegrationFileIntegrationId.Value > 0)
+            {
+                var forThisIntegration = candidates.FindAll(x => x.IntegrationId == Settings.Instance.IntegrationFileIntegrationId.Value);
+
+                //Only narrow if it actually leaves us something. If the configured integration has no systems we
+                //are better off showing the full list than showing nothing.
+                if (forThisIntegration.Count > 0)
+                    candidates = forThisIntegration;
+            }
+
+            candidates.Sort((a, b) => string.Compare(a.Name, b.Name, StringComparison.OrdinalIgnoreCase));
+
+            if (candidates.Count == 0)
+                throw new Exception("systemTypeVersionId is required when uploading, and no version could be "
+                    + $"determined automatically: company {Settings.Instance.CompanyId} has no systems with an "
+                    + "integration version. Add a system for the integration you are uploading, then rerun with "
+                    + "systemTypeVersionId=<SystemTypeVersionId>.");
+
+            if (candidates.Count == 1)
+            {
+                StandardUtilities.WriteToConsole($"No systemTypeVersionId was specified. Using the only version "
+                    + $"available to this company: {candidates[0].IntegrationVersionId}", StandardUtilities.Severity.DETAIL);
+                return candidates[0].IntegrationVersionId;
+            }
+
+            //More than one, so we cannot pick for them. Describe each option, decorated with its version number
+            //where we can retrieve it.
+            throw new Exception("systemTypeVersionId is required when uploading, and this company has more than "
+                + "one version available. Rerun with systemTypeVersionId=<SystemTypeVersionId> using one of: "
+                + Environment.NewLine + DescribeVersions(candidates, matchingCompany));
+        }
+
+        /// <summary>
+        /// Build a display list of the candidate versions, e.g. "2|11 v1.2.2". The version numbers come from the
+        /// integration record; if that call fails we still list the ids, since the ids are the part the user needs.
+        /// </summary>
+        private static string DescribeVersions(List<SubscriptionResponse> candidates, CompanyInfoResponse matchingCompany)
+        {
+            //Cache by integration id so we make at most one call per integration rather than one per version.
+            var versionsByIntegration = new Dictionary<long, List<VersionResponse>>();
+            foreach (var candidate in candidates)
+            {
+                if (versionsByIntegration.ContainsKey(candidate.IntegrationId))
+                    continue;
+
+                try
+                {
+                    var integration = iPaaSCallWrapper.Integration(candidate.IntegrationId, matchingCompany.CompanySpecificFullToken);
+                    versionsByIntegration[candidate.IntegrationId] = integration?.Versions ?? new List<VersionResponse>();
+                }
+                catch
+                {
+                    //Decorating the list is a convenience, not a requirement. Fall back to the bare id.
+                    versionsByIntegration[candidate.IntegrationId] = new List<VersionResponse>();
+                }
+            }
+
+            var lines = new List<string>();
+            foreach (var candidate in candidates)
+            {
+                var display = new String(' ', 5) + candidate.IntegrationVersionId;
+
+                var match = versionsByIntegration[candidate.IntegrationId]
+                    .Find(x => x.Id == candidate.IntegrationVersionId);
+                if (match != null)
+                    display += $" v{match.VersionMajor}.{match.VersionMinor}.{match.VersionPatch}";
+
+                if (!string.IsNullOrEmpty(candidate.Name))
+                    display += $" ({candidate.Name})";
+
+                lines.Add(display);
+            }
+
+            return string.Join(Environment.NewLine, lines);
         }
 
         public static string GetSimplifiedTypeName(Type type)

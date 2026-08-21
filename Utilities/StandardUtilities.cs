@@ -411,6 +411,29 @@ namespace IntegrationDevelopmentUtility.Utilities
             //}
         }
 
+        /// <summary>
+        /// Print a one line summary of every available command. Use PrintUsageDetail for the full
+        /// description of an individual command.
+        /// </summary>
+        public static void PrintUsageSummary()
+        {
+            var summary = new UsageDisplay();
+            summary.Description = "Available commands. Type a command followed by /? for full details on that command, e.g. HOOK /?";
+            summary.UsageSummary = "Usage: <COMMAND> [parameters]";
+            summary.Example = "Example: CONVERSIONFUNCTION type=UPLOAD systemTypeVersionId=2|11";
+            summary.PreparamInstruction = "Commands:";
+            summary.Parameters.Add(new UsageDisplayParameter() { Name = "UPLOAD", Description = "Upload an integration dll to iPaaS and prepare it for use." });
+            summary.Parameters.Add(new UsageDisplayParameter() { Name = "HOOK", Description = "Send a transfer request hook and view the log output as the transfer occurs." });
+            summary.Parameters.Add(new UsageDisplayParameter() { Name = "HOOKCHAT", Description = "Send a transfer request hook using a conversational prompt." });
+            summary.Parameters.Add(new UsageDisplayParameter() { Name = "TEST", Description = "Execute a method from your DevelopmentTests class against a connection object." });
+            summary.Parameters.Add(new UsageDisplayParameter() { Name = "BUILDMODELS", Description = "Download the request and response structures for an iPaaS API to a local folder." });
+            summary.Parameters.Add(new UsageDisplayParameter() { Name = "CONVERSIONFUNCTION", Description = "Read the conversion functions out of your integration and upload them to iPaaS, or write them out as WIKI or CSV text." });
+            summary.Parameters.Add(new UsageDisplayParameter() { Name = "APIKEYS", Description = "Print the API keys available for the configured company." });
+            summary.Parameters.Add(new UsageDisplayParameter() { Name = "INTEGRATORS", Description = "Print the integrator systems available, including their version ids." });
+            summary.Parameters.Add(new UsageDisplayParameter() { Name = "HELP", Description = "Print this list. /? and ? do the same thing." });
+            summary.PrintToConsole();
+        }
+
         public static void PrintUsageDetail(string command)
         {
             var usageDetails = "";
@@ -451,6 +474,20 @@ namespace IntegrationDevelopmentUtility.Utilities
                 hookUsage.Parameters.Add(new UsageDisplayParameter() { Name = "Filename", Description = "An optional parameter. If no Filename is specified, the value for integration_file_location in the configuration file will be used." });
                 //This is no longer necessary since the id is included in the dll hookUsage.Parameters.Add(new UsageDisplayParameter() { Name = "SystemTypeId", Description = "An optional parameter. If no SystemTypeId is specified, the value for integration_file_system_type_id in the configuration file will be used." });
                 hookUsage.PrintToConsole();
+            }
+            else if (command.ToUpper() == "CONVERSIONFUNCTION" || command.ToUpper() == "CONVERSIONFUNCTIONS")
+            {
+                var conversionUsage = new UsageDisplay();
+                conversionUsage.Description = "Read the conversion functions out of your integration's XML documentation file and either upload them to iPaaS or print them as WIKI or CSV text. Optional parameters are detected automatically: a parameter counts as optional when it declares a default value or is a params array.";
+                conversionUsage.UsageSummary = "Usage: CONVERSIONFUNCTION [type=<UPLOAD|WIKI|CSV>] [inputfile=<filename>] [class=<ConversionFunctionClass>] [systemTypeVersionId=<SystemTypeVersionId>]";
+                conversionUsage.Example = "Example: CONVERSIONFUNCTION type=UPLOAD systemTypeVersionId=2|11";
+                conversionUsage.PreparamInstruction = "Parameters may be given in any order. All are optional:";
+                conversionUsage.Parameters.Add(new UsageDisplayParameter() { Name = "type", Description = "The output target. UPLOAD sends the functions to the iPaaS API, WIKI and CSV print them to the console instead. Defaults to UPLOAD." });
+                conversionUsage.Parameters.Add(new UsageDisplayParameter() { Name = "inputfile", Description = "The XML documentation file to read. Defaults to the file specified by integration_file_location in appsettings.json, with the .dll extension swapped for .xml." });
+                conversionUsage.Parameters.Add(new UsageDisplayParameter() { Name = "class", Description = "The class holding the conversion functions. Defaults to ConversionFunctions." });
+                conversionUsage.Parameters.Add(new UsageDisplayParameter() { Name = "systemTypeVersionId", Description = "The system type version to upload to, e.g. 2|11. Only used by type=UPLOAD. If omitted and the company has exactly one version, that version is used automatically; if it has several, they are listed for you." });
+                conversionUsage.Parameters.Add(new UsageDisplayParameter() { Name = "/NOXML", Description = "Run from the dll alone, without an xml documentation file. Only formulas that already exist are updated - nothing is created - so use this to backfill values read from the assembly (parameter names, types, whether a parameter is required) when you do not have a matching xml build. Methods with no existing formula are listed at the end." });
+                conversionUsage.PrintToConsole();
             }
             else if (command.ToUpper() == "BUILDMODELS")
             {

@@ -96,7 +96,7 @@ namespace IntegrationDevelopmentUtility
                 }
                 else
                 {
-                    Console.WriteLine("Enter test command (UPLOAD, HOOK, TEST, BUILDMODELS):");
+                    Console.WriteLine("Enter test command (UPLOAD, HOOK, TEST, BUILDMODELS, CONVERSIONFUNCTION) - Type HELP for a list of commands:");
                     resp = Console.ReadLine();
                     if (resp == null)
                         continue;
@@ -113,22 +113,22 @@ namespace IntegrationDevelopmentUtility
                     {
                         Console.WriteLine("Invalid entry method");
                     }
-                    else if (resp.ToUpper() == "UPLOAD /?" || resp.ToUpper() == "TEST /?" || resp.ToUpper() == "HOOK /?" || resp.ToUpper() == "BUILDMODELS /?")
+                    else if (resp.ToUpper() == "HELP" || resp == "/?" || resp == "?")
                     {
-                        switch (resp.ToUpper())
+                        StandardUtilities.PrintUsageSummary();
+                    }
+                    else if (parsed.Length > 1 && (parsed[1] == "/?" || parsed[1] == "?"))
+                    {
+                        //<COMMAND> /? prints the detail for that command. Anything we do not have detail for
+                        //falls back to the summary rather than silently doing nothing.
+                        var helpFor = parsed[0].ToUpper();
+                        if (helpFor == "UPLOAD" || helpFor == "TEST" || helpFor == "HOOK" || helpFor == "BUILDMODELS"
+                            || helpFor == "CONVERSIONFUNCTION" || helpFor == "CONVERSIONFUNCTIONS")
+                            StandardUtilities.PrintUsageDetail(helpFor);
+                        else
                         {
-                            case "UPLOAD /?":
-                                StandardUtilities.PrintUsageDetail("UPLOAD");
-                                break;
-                            case "TEST /?":
-                                StandardUtilities.PrintUsageDetail("TEST");
-                                break;
-                            case "HOOK /?":
-                                StandardUtilities.PrintUsageDetail("HOOK");
-                                break;
-                            case "BUILDMODELS /?":
-                                StandardUtilities.PrintUsageDetail("BUILDMODELS");
-                                break;
+                            StandardUtilities.WriteToConsole($"No detailed help is available for {parsed[0]}.", StandardUtilities.Severity.LOCAL);
+                            StandardUtilities.PrintUsageSummary();
                         }
                     }
                     else if (parsed[0].ToUpper() == "UPLOAD")
@@ -608,6 +608,9 @@ namespace IntegrationDevelopmentUtility
                         string filename = null;
                         string className = null;
                         string systemTypeVersionId = null;
+                        //Run from the dll alone, updating only formulas that already exist. Used to backfill
+                        //values read from the assembly when we do not have a matching xml file.
+                        bool noXml = false;
 
                         foreach(var parsedValue in parsed)
                         {
@@ -619,6 +622,8 @@ namespace IntegrationDevelopmentUtility
                                 className = parsedValue.Substring(6);
                             else if (parsedValue.ToUpper().StartsWith("SYSTEMTYPEVERSIONID="))
                                 systemTypeVersionId = parsedValue.Substring(20);
+                            else if (parsedValue.ToUpper() == "/NOXML" || parsedValue.ToUpper() == "NOXML=TRUE")
+                                noXml = true;
                             else if (parsedValue.ToUpper().StartsWith("CONVERSIONFUNCTION"))
                                 continue; //This is just the command name, which we can skip
                             else
@@ -629,15 +634,18 @@ namespace IntegrationDevelopmentUtility
                         if (string.IsNullOrEmpty(className))
                             className = "ConversionFunctions";
 
-                        if(string.IsNullOrEmpty(filename))
+                        if (noXml)
+                            //No documentation file: TurnXMLIntoOutput will run from the assembly alone.
+                            filename = null;
+                        else if(string.IsNullOrEmpty(filename))
                             //default to the integration file
                             filename = Settings.Instance.IntegrationFileLocation;
 
-                        if (filename.StartsWith("\""))
+                        if (filename != null && filename.StartsWith("\""))
                             filename = filename.Substring(1, filename.Length - 2);
 
                         //Now rename the .dll to .xml
-                        if (filename.EndsWith(".dll"))
+                        if (filename != null && filename.EndsWith(".dll"))
                             filename = filename.Substring(0, filename.Length - 4) + ".xml";
 
                         //default to UPLOAD as the type
@@ -646,10 +654,13 @@ namespace IntegrationDevelopmentUtility
 
 
                         //Call the output function. Note that we wait to validate the params until later
-                        await DocumentationReader.TurnXMLIntoOutput(Settings.Instance.IntegrationFileLocation, filename, className, outputType, systemTypeVersionId);
+                        await DocumentationReader.TurnXMLIntoOutput(Settings.Instance.IntegrationFileLocation, filename, className, outputType, systemTypeVersionId, noXml);
                     }
                     else
-                        Console.WriteLine("Invalid entry method. Please use the UPLOAD, HOOK, TEST, or BUILDMODELS commands. Type a command followed by /? for more details.");
+                    {
+                        StandardUtilities.WriteToConsole($"Unrecognized command: {parsed[0]}", StandardUtilities.Severity.LOCAL_ERROR);
+                        StandardUtilities.PrintUsageSummary();
+                    }
                 }
                 catch (Exception ex)
                 {

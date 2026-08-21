@@ -193,6 +193,25 @@ namespace IntegrationDevelopmentUtility.Utilities
             return response;
         }
 
+        /// <summary>
+        /// Retrieve a single integration, including the list of versions defined for it. Used to describe
+        /// the available system type version ids to the user when they have not specified one.
+        /// </summary>
+        public static IntegrationResponse Integration(long integrationId, FullToken companyToken)
+        {
+            //Note: these are v1 on the integrator api
+            var apiCall = new iPaaSApiCall($"/v1/Integration/{integrationId}", companyToken, iPaaSApiCall.ApiType.Integrator, typeof(IntegrationResponse), RestSharp.Method.Get);
+
+            //This is only used to decorate a message with version numbers. If the caller cannot see this
+            //integration we still want the plain id list, so do not spam the console with an error.
+            apiCall.SuppressError = true;
+
+            var task = Task.Run(async () => await apiCall.ProcessRequest());
+            var response = (IntegrationResponse)task.GetAwaiter().GetResult();
+
+            return response;
+        }
+
         public static MappingCollectionResponse MappingCollectionGet(long mappingCollectionId, FullToken systemToken)
         {
             var apiCall = new iPaaSApiCall("/v2/MappingCollection/{id}", systemToken, iPaaSApiCall.ApiType.Subscription, typeof(MappingCollectionResponse), RestSharp.Method.Get);

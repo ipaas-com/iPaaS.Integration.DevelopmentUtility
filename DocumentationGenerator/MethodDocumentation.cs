@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace IntegrationDevelopmentUtility.DocumentationGenerator
 {
@@ -35,6 +36,57 @@ namespace IntegrationDevelopmentUtility.DocumentationGenerator
             string retVal = $"| {HTMLEncode(callWithParams)} | {HTMLEncode(ReturnsDescription)} | {HTMLEncode(Summary)} | {HTMLEncode(Example)} |";
 
             Console.WriteLine(retVal);
+        }
+
+        /// <summary>
+        /// The dynamic formula update is a full overwrite: every field on the request is written to the
+        /// database, so a null erases whatever was there. We only know what the assembly tells us, which
+        /// leaves two gaps:
+        ///
+        ///   - Format, MinLength and MaxLength are not derivable from reflection and are never populated
+        ///     here, so an update would blank them on every run.
+        ///   - Descriptions, examples and the returns text come from the XML documentation file. A method
+        ///     with no doc comment, or a stale XML file, yields nulls that would wipe curated text.
+        ///
+        /// So where the code has nothing to say, keep what is already stored. Where the code does have a
+        /// value it still wins - the point of the run is to make the database match the code.
+        ///
+        /// Deliberately NOT carried forward:
+        ///   - Status, which is derived from the [Obsolete] attribute. The code is the source of truth for
+        ///     whether a formula is deprecated, so an update should reset a manual status change.
+        ///   - IsRequired, Name, DataType, Formula and IsAsync, which are always read from the assembly.
+        /// </summary>
+        private static void CarryForwardUnknownValues(DynamicFormulaRequest request, DynamicFormulaResponse existing)
+        {
+            if (string.IsNullOrEmpty(request.Description))
+                request.Description = existing.Description;
+
+            if (string.IsNullOrEmpty(request.Example))
+                request.Example = existing.Example;
+
+            if (request.ReturnParameter != null && existing.ReturnParameter != null
+                && string.IsNullOrEmpty(request.ReturnParameter.Description))
+                request.ReturnParameter.Description = existing.ReturnParameter.Description;
+
+            if (request.Parameters == null || existing.Parameters == null)
+                return;
+
+            foreach (var requestParam in request.Parameters)
+            {
+                //Match on name. A renamed parameter is effectively a new one, so it correctly gets nothing.
+                var existingParam = existing.Parameters.Find(x =>
+                    string.Equals(x.Name, requestParam.Name, StringComparison.OrdinalIgnoreCase));
+                if (existingParam == null)
+                    continue;
+
+                //These three are never set from reflection, so they would always be blanked without this.
+                requestParam.Format = existingParam.Format;
+                requestParam.MinLength = existingParam.MinLength;
+                requestParam.MaxLength = existingParam.MaxLength;
+
+                if (string.IsNullOrEmpty(requestParam.Description))
+                    requestParam.Description = existingParam.Description;
+            }
         }
 
         private string HTMLEncode(string input)
@@ -77,7 +129,12 @@ namespace IntegrationDevelopmentUtility.DocumentationGenerator
             return input;
         }
 
-        public async void ToAPI(string systemTypeVersionId, FullToken fullToken)
+        /// <param name="updateOnly">
+        /// When true, only update formulas that already exist. Returns false without calling the API if
+        /// there is no match, so a run without an XML file cannot create anything.
+        /// </param>
+        /// <returns>True when the formula was created or updated, false when it was skipped.</returns>
+        public async Task<bool> ToAPI(string systemTypeVersionId, FullToken fullToken, bool updateOnly = false)
         {
             var request = new DynamicFormulaRequest();
             request.Name = this.Name;
@@ -98,6 +155,7 @@ namespace IntegrationDevelopmentUtility.DocumentationGenerator
             //We need to ensure that this formula does not already exist.
             var existingFormulas = iPaaSCallWrapper.DynamicFormulas(systemTypeVersionId, fullToken);
             long? existingId = null; 
+            DynamicFormulaResponse existingFormula = null;
             if(existingFormulas != null)
             {
                 //First match everything by name and param count
@@ -115,10 +173,20 @@ namespace IntegrationDevelopmentUtility.DocumentationGenerator
                     if (matchingParams == request.Parameters.Count())
                     {
                         existingId = matchingName.Id;
+                        existingFormula = matchingName;
                         break; //we can stop looking
                     }
                 }
             }
+
+            //The update below is a full overwrite, so anything we leave null is erased. Carry forward the
+            //values we cannot see from the assembly before we send it.
+            if (existingFormula != null)
+                CarryForwardUnknownValues(request, existingFormula);
+
+            //Nothing to update and we are not allowed to create, so leave it alone. The caller reports these.
+            if (updateOnly && !existingId.HasValue)
+                return false;
 
 
             try
@@ -130,11 +198,13 @@ namespace IntegrationDevelopmentUtility.DocumentationGenerator
                     response = iPaaSCallWrapper.DynamicFormulaCreate(request, fullToken);
                 
                 StandardUtilities.WriteToConsole($"Successfully {(existingId.HasValue ? "updated" : "created")} {request.Name}", StandardUtilities.Severity.DETAIL);
+                return true;
             }
             catch (Exception ex) 
             {
                 StandardUtilities.WriteToConsole($"Unable to save Dynamic Formula named {this.Name}", StandardUtilities.Severity.ERROR);
                 StandardUtilities.WriteToConsole(ex.Message, StandardUtilities.Severity.ERROR);
+                return false;
             }
         }
     }
