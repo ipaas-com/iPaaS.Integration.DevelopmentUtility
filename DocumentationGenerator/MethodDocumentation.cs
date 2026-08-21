@@ -90,7 +90,7 @@ namespace IntegrationDevelopmentUtility.DocumentationGenerator
             request.ReturnParameter = new ReturnParameterRequest() { Description = this.ReturnsDescription, DataType = this.ReturnType };
             request.Parameters = new List<DynamicFormulaParameterRequest>();
             foreach (var param in Parameters)
-                request.Parameters.Add(new DynamicFormulaParameterRequest() { Name = param.Name, Description = param.Description, DataType = param.Type });
+                request.Parameters.Add(new DynamicFormulaParameterRequest() { Name = param.Name, Description = param.Description, DataType = param.Type, IsRequired = param.IsRequired });
 
             //We must build the formula.
             request.Formula = $"{this.Name}({string.Join(", ", this.Parameters.Select(p => p.Type + " " + p.Name))})"; //This field is required, so we need something here. 
@@ -145,5 +145,10 @@ namespace IntegrationDevelopmentUtility.DocumentationGenerator
         public string Description;
         public string Type;
         public int Order;
+        /// <summary>
+        /// False when the caller may omit this parameter - either it has a default value or it is a
+        /// params array (which accepts zero arguments). See User Story 22028.
+        /// </summary>
+        public bool IsRequired;
     }
 }

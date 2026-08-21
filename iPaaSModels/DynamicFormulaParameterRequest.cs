@@ -29,5 +29,12 @@ namespace IntegrationDevelopmentUtility.iPaaSModels
 
         [JsonProperty("max_length", Order = 35)]
         public int? MaxLength { get; set; }
+
+        /// <summary>
+        /// Indicates whether a value must be supplied for this parameter when the formula is called.
+        /// Omit or send null when the value is not known.
+        /// </summary>
+        [JsonProperty("is_required", Order = 40)]
+        public bool? IsRequired { get; set; }
     }
 }

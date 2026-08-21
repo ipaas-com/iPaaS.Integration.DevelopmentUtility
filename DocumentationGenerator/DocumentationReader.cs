@@ -123,7 +123,7 @@ namespace IntegrationDevelopmentUtility.DocumentationGenerator
                 foreach(var param in paramList)
                 {
                     //Add the parameters from the method. Note that we add the Description field as we iterate the xml file below.
-                    methodDoc.Parameters.Add(new MethodDocumentationParameter() { Name = param.Name, Order = param.Position, Type = GetSimplifiedTypeName(param.ParameterType) });
+                    methodDoc.Parameters.Add(new MethodDocumentationParameter() { Name = param.Name, Order = param.Position, Type = GetSimplifiedTypeName(param.ParameterType), IsRequired = IsParameterRequired(param) });
                 }
 
                 //Now read the documentation and pull the XML data.
@@ -179,6 +179,22 @@ namespace IntegrationDevelopmentUtility.DocumentationGenerator
                         methodDoc.ToAPI(systemTypeVersionId, systemToken);
                 }
             }
+        }
+
+        /// <summary>
+        /// Determines whether a caller must supply a value for this parameter. A parameter is optional if it
+        /// declares a default value, or if it is a params array - a params array accepts zero arguments, so
+        /// omitting it is legal even though ParameterInfo.IsOptional reports false.
+        /// </summary>
+        public static bool IsParameterRequired(ParameterInfo parameter)
+        {
+            if (parameter.IsOptional || parameter.HasDefaultValue)
+                return false;
+
+            if (parameter.IsDefined(typeof(ParamArrayAttribute), false))
+                return false;
+
+            return true;
         }
 
         public static string GetSimplifiedTypeName(Type type)
