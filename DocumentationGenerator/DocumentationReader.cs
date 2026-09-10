@@ -127,6 +127,15 @@ namespace IntegrationDevelopmentUtility.DocumentationGenerator
 
             var uploaded = 0;
             var skipped = new List<string>();
+            //Ids of stored formulas that a method in this assembly accounted for. Anything left over is a
+            //formula we did not touch - see the unmatched report below.
+            var matchedFormulaIds = new HashSet<long>();
+
+            //Fetch the existing formulas ONCE for the whole run. This used to happen inside ToAPI, i.e. once
+            //per formula, which meant a full GET for every method in the assembly.
+            List<DynamicFormulaResponse> existingFormulas = null;
+            if (outputType == OutputType.SendToDatabase)
+                existingFormulas = iPaaSCallWrapper.DynamicFormulas(systemTypeVersionId, systemToken);
 
             //Start with the methods as enumerated in the desired type. Note that we do not start with the XML file, since that will exclude methods
             //  without any comments, exclude parameters without comments, etc.
@@ -207,7 +216,7 @@ namespace IntegrationDevelopmentUtility.DocumentationGenerator
                     {
                         //Note this is awaited. It used to be fire-and-forget (async void), which meant
                         //failures were unobservable and the process could exit mid-upload.
-                        if (await methodDoc.ToAPI(systemTypeVersionId, systemToken, updateOnly))
+                        if (await methodDoc.ToAPI(systemTypeVersionId, systemToken, existingFormulas, updateOnly, matchedFormulaIds))
                             uploaded++;
                         else
                             skipped.Add(methodDoc.Name);
@@ -225,6 +234,22 @@ namespace IntegrationDevelopmentUtility.DocumentationGenerator
                     StandardUtilities.WriteToConsole($"Skipped {skipped.Count} method(s) with no existing formula to update:", StandardUtilities.Severity.LOCAL);
                     foreach (var name in skipped)
                         StandardUtilities.WriteToConsole($"     {name}", StandardUtilities.Severity.LOCAL);
+                }
+
+                //The inverse, and the one that matters for a backfill: formulas stored against this version
+                //that no method in the loaded assembly accounts for. They keep whatever values they already
+                //had, so on a backfill run these are exactly the rows that do NOT get the new data.
+                //Usually one of: the dll is older than the formulas, the formula belongs to a different
+                //integration, or the method was renamed or removed.
+                if (existingFormulas != null)
+                {
+                    var unmatched = existingFormulas.FindAll(x => !matchedFormulaIds.Contains(x.Id));
+                    if (unmatched.Count > 0)
+                    {
+                        StandardUtilities.WriteToConsole($"{unmatched.Count} stored formula(s) were NOT updated - no matching method in {destinationType.FullName}:", StandardUtilities.Severity.LOCAL);
+                        foreach (var formula in unmatched)
+                            StandardUtilities.WriteToConsole($"     {formula.Name}({string.Join(", ", (formula.Parameters ?? new List<DynamicFormulaParameterResponse>()).ConvertAll(p => p.DataType))})", StandardUtilities.Severity.LOCAL);
+                    }
                 }
             }
         }

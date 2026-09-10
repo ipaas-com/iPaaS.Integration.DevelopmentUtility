@@ -53,6 +53,7 @@ namespace IntegrationDevelopmentUtility
             catch (Exception ex)
             {
                 StandardUtilities.WriteToConsole("Unable to complete the startup process: " + ex.Message, StandardUtilities.Severity.LOCAL_ERROR);
+                Environment.ExitCode = 1;
                 return;
             }
 
@@ -148,11 +149,13 @@ namespace IntegrationDevelopmentUtility
                             if (string.IsNullOrEmpty(Settings.Instance.IntegrationFileLocation))
                             {
                                 StandardUtilities.WriteToConsole("UPLOAD requires an integration id and filename, or a values specified in the config file. Run UPLOAD /? for more details", StandardUtilities.Severity.LOCAL);
+                                OperationCancelled = true;
                                 continue;
                             }
                             else if (!Settings.Instance.IntegrationFileIntegrationId.HasValue)
                             {
                                 StandardUtilities.WriteToConsole("UPLOAD requires an integration id and filename, or a values specified in the config file. Run UPLOAD /? for more details", StandardUtilities.Severity.LOCAL);
+                                OperationCancelled = true;
                                 continue;
                             }
                             else
@@ -169,6 +172,7 @@ namespace IntegrationDevelopmentUtility
                             if (parsed.Length != 3)
                             {
                                 StandardUtilities.WriteToConsole("UPLOAD requires an integration id and filename, or a values specified in the config file. Run UPLOAD /? for more details", StandardUtilities.Severity.LOCAL);
+                                OperationCancelled = true;
                                 continue;
                             }
 
@@ -183,6 +187,7 @@ namespace IntegrationDevelopmentUtility
                             if (!long.TryParse(integrationIdStr, out integrationId))
                             {
                                 StandardUtilities.WriteToConsole($"The IntegrationId supplied was not an integer. Value: {integrationIdStr}", StandardUtilities.Severity.LOCAL_ERROR);
+                                OperationCancelled = true;
                                 continue;
                             }
                             uploadFileName = parsed[2];
@@ -199,7 +204,7 @@ namespace IntegrationDevelopmentUtility
                         ConsoleKeyInfo? cki;
                         do
                         {
-                            cki = StandardUtilities.ReadKeyWithTimeout();
+                            cki = StandardUtilities.TryReadKey();
                             // do something with each key press until escape key is pressed
                             if (OperationCompleted || OperationCancelled || (cki.HasValue && cki.Value.Key == ConsoleKey.Escape))
                             {
@@ -226,6 +231,7 @@ namespace IntegrationDevelopmentUtility
                         if (parsed.Length != 5)
                         {
                             StandardUtilities.WriteToConsole("HOOK usage (all parameters should be enclosed in quotes): HOOK \"<System id>\" \"<Scope>\" \"<External Id>\" \"<Direction>\" [/LOG]. Run HOOK /? for full usage details.", StandardUtilities.Severity.LOCAL);
+                            OperationCancelled = true;
                             continue;
                         }
 
@@ -241,7 +247,8 @@ namespace IntegrationDevelopmentUtility
                         parsed[3] = parsed[3].Replace("\\\"", "\"");
 
                         //Clear the console so the hook will have clean output
-                        Console.Clear();
+                        if (!Console.IsOutputRedirected)
+                            Console.Clear();
 
                         if (enableLog)
                         {
@@ -309,6 +316,7 @@ namespace IntegrationDevelopmentUtility
                         if (parsed.Length < 3)
                         {
                             StandardUtilities.WriteToConsole("TEST usage: TEST <Method Name> <System Id> [/LOG]   Note: to use the configuration file settings, specify system 0. Run TEST /? for more details.", StandardUtilities.Severity.LOCAL);
+                            OperationCancelled = true;
                             continue;
                         }
 
@@ -317,6 +325,7 @@ namespace IntegrationDevelopmentUtility
                         if(!Int64.TryParse(lastParameterStr, out var systemId))
                         {
                             StandardUtilities.WriteToConsole("TEST usage: TEST <Method Name> <System Id> [/LOG]   Note: to use the configuration file settings, specify system 0. Run TEST /? for more details.", StandardUtilities.Severity.LOCAL);
+                            OperationCancelled = true;
                             continue;
                         }
 
@@ -403,6 +412,7 @@ namespace IntegrationDevelopmentUtility
                         if (parsed.Length != 4)
                         {
                             StandardUtilities.WriteToConsole("BUILDMODELS requires a file path, API Name, and Namespace. Run BUILDMODELS /? for more details and examples", StandardUtilities.Severity.LOCAL);
+                            OperationCancelled = true;
                             continue;
                         }
 
@@ -666,9 +676,14 @@ namespace IntegrationDevelopmentUtility
                 {
                     StandardUtilities.WriteToConsole("An error occurred running the command " + resp, StandardUtilities.Severity.LOCAL_ERROR);
                     StandardUtilities.WriteToConsole(ex, StandardUtilities.Severity.LOCAL_ERROR);
+                    OperationCancelled = true;
                 }
 
             }
+
+            // In command-line mode the exit code is the only failure signal a calling script can see.
+            if (IsCommandLineMode && OperationCancelled)
+                Environment.ExitCode = 1;
 
             //SendHookAndListenForLogBUILDMODELS(1796, "product/updated", "275078", "FROM");
 

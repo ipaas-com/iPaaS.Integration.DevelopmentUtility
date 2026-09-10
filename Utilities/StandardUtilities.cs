@@ -377,38 +377,52 @@ namespace IntegrationDevelopmentUtility.Utilities
             }
         }
 
-        public static ConsoleKeyInfo? ReadKeyWithTimeout()
-        {
-            var task = Task.Run(() => Console.ReadKey(true));
-            bool read = task.Wait(1000);
-            //if (task.Result != null)
-            //    Console.WriteLine("Task.Result: " + task.Result.Key.ToString());
-            //else
-            //    Console.WriteLine("Task.Result: Nothing");
+        private static bool? _consoleInputAvailable;
 
-            return task.Result;
+        /// <summary>
+        /// True when the process has an interactive console we can read key presses from. False when stdin is
+        /// redirected (a pipe or file, as in CI or agent-driven runs) or when no console is attached at all.
+        /// </summary>
+        public static bool ConsoleInputAvailable
+        {
+            get
+            {
+                if (_consoleInputAvailable == null)
+                {
+                    try
+                    {
+                        _consoleInputAvailable = !Console.IsInputRedirected;
+                    }
+                    catch (Exception)
+                    {
+                        _consoleInputAvailable = false;
+                    }
+                }
+                return _consoleInputAvailable.Value && !TimedKeyReader.ReaderFailed;
+            }
         }
 
-        delegate ConsoleKeyInfo ReadKeyDelegate();
-
-        public static ConsoleKeyInfo? ReadKey()
+        /// <summary>
+        /// Wait up to timeoutMs for a key press. Returns null if no key was pressed in time. Also returns null,
+        /// after waiting out the timeout, when there is no interactive console to read from. Waiting in that case
+        /// keeps the polling loops that call this paced at the same rate instead of spinning.
+        /// </summary>
+        public static ConsoleKeyInfo? TryReadKey(int timeoutMs = 1000)
         {
-            var result = TimedKeyReader.ReadKey(1000);
-            return result;
-            //ReadKeyDelegate d = Console.ReadKey;
-            //IAsyncResult result = d.BeginInvoke(null, null);
-            //result.AsyncWaitHandle.WaitOne(timeoutms);//timeout e.g. 15000 for 15 secs
-            //if (result.IsCompleted)
-            //{
-            //    ConsoleKeyInfo resultcki = d.EndInvoke(result);
-            //    Console.WriteLine("Read: " + resultcki);
-            //    return resultcki;
-            //}
-            //else
-            //{
-            //    Console.WriteLine("Timed out!");
-            //    return null;
-            //}
+            if (!ConsoleInputAvailable)
+            {
+                Thread.Sleep(timeoutMs);
+                return null;
+            }
+
+            var key = TimedKeyReader.ReadKey(timeoutMs);
+            if (key == null && TimedKeyReader.ReaderFailed)
+            {
+                // The reader thread found there is no console after all (e.g. no console window attached even
+                // though input is not reported as redirected). From now on ConsoleInputAvailable is false.
+                Thread.Sleep(timeoutMs);
+            }
+            return key;
         }
 
         /// <summary>
@@ -726,11 +740,23 @@ namespace IntegrationDevelopmentUtility.Utilities
             !t.IsValueType || Nullable.GetUnderlyingType(t) != null;
     }
 
+    /// <summary>
+    /// Reads key presses on a dedicated background thread so callers can wait for a key with a timeout.
+    /// Console.ReadKey cannot be interrupted, so the reader stays blocked until the next key arrives; a key
+    /// that arrives after a caller timed out is handed to the next caller.
+    /// </summary>
     internal class TimedKeyReader
     {
         private static Thread inputThread;
         private static AutoResetEvent getInput, gotInput;
         private static ConsoleKeyInfo input;
+        private static volatile bool readerFailed;
+
+        /// <summary>
+        /// True once Console.ReadKey has thrown on the reader thread (input redirected, or no console). Once set,
+        /// ReadKey always returns null immediately.
+        /// </summary>
+        public static bool ReaderFailed => readerFailed;
 
         static TimedKeyReader()
         {
@@ -746,17 +772,30 @@ namespace IntegrationDevelopmentUtility.Utilities
             while (true)
             {
                 getInput.WaitOne();
-                input = Console.ReadKey();
+                try
+                {
+                    input = Console.ReadKey(true);
+                }
+                catch (Exception ex) when (ex is InvalidOperationException || ex is IOException)
+                {
+                    // An unhandled exception on this thread would terminate the whole process. Record the failure
+                    // and let the waiting caller find out through ReaderFailed instead.
+                    readerFailed = true;
+                    gotInput.Set();
+                    return;
+                }
                 gotInput.Set();
             }
         }
 
-        // omit the parameter to read a line without a timeout
         public static ConsoleKeyInfo? ReadKey(int timeOutMillisecs = Timeout.Infinite)
         {
+            if (readerFailed)
+                return null;
+
             getInput.Set();
             bool success = gotInput.WaitOne(timeOutMillisecs);
-            if (success)
+            if (success && !readerFailed)
                 return input;
             else
                 return null;

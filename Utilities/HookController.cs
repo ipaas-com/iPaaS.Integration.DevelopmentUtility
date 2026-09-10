@@ -65,7 +65,7 @@ namespace IntegrationDevelopmentUtility.Utilities
                 ConsoleKeyInfo? cki;
                 do
                 {
-                    cki = StandardUtilities.ReadKey();
+                    cki = StandardUtilities.TryReadKey();
                     // do something with each key press until escape key is pressed
                     if (cki.HasValue && cki.Value.Key == ConsoleKey.Escape)
                     {

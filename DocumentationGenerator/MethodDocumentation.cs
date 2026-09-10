@@ -133,8 +133,16 @@ namespace IntegrationDevelopmentUtility.DocumentationGenerator
         /// When true, only update formulas that already exist. Returns false without calling the API if
         /// there is no match, so a run without an XML file cannot create anything.
         /// </param>
+        /// <param name="existingFormulas">
+        /// The formulas already stored for this version. Fetched ONCE by the caller and passed in - this used
+        /// to be re-queried inside this method, i.e. once per formula.
+        /// </param>
+        /// <param name="matchedFormulaIds">
+        /// Optional. Receives the id of the existing formula this method matched, so the caller can work out
+        /// which stored formulas no method in the assembly accounts for.
+        /// </param>
         /// <returns>True when the formula was created or updated, false when it was skipped.</returns>
-        public async Task<bool> ToAPI(string systemTypeVersionId, FullToken fullToken, bool updateOnly = false)
+        public async Task<bool> ToAPI(string systemTypeVersionId, FullToken fullToken, List<DynamicFormulaResponse> existingFormulas, bool updateOnly = false, ICollection<long> matchedFormulaIds = null)
         {
             var request = new DynamicFormulaRequest();
             request.Name = this.Name;
@@ -152,8 +160,7 @@ namespace IntegrationDevelopmentUtility.DocumentationGenerator
             //We must build the formula.
             request.Formula = $"{this.Name}({string.Join(", ", this.Parameters.Select(p => p.Type + " " + p.Name))})"; //This field is required, so we need something here. 
 
-            //We need to ensure that this formula does not already exist.
-            var existingFormulas = iPaaSCallWrapper.DynamicFormulas(systemTypeVersionId, fullToken);
+            //We need to ensure that this formula does not already exist. The list is supplied by the caller.
             long? existingId = null; 
             DynamicFormulaResponse existingFormula = null;
             if(existingFormulas != null)
@@ -183,6 +190,9 @@ namespace IntegrationDevelopmentUtility.DocumentationGenerator
             //values we cannot see from the assembly before we send it.
             if (existingFormula != null)
                 CarryForwardUnknownValues(request, existingFormula);
+
+            if (existingId.HasValue)
+                matchedFormulaIds?.Add(existingId.Value);
 
             //Nothing to update and we are not allowed to create, so leave it alone. The caller reports these.
             if (updateOnly && !existingId.HasValue)

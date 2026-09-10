@@ -9,6 +9,7 @@ It is recommended to start with a new integration project.  If you have not done
   * [Run local tests with your integration file](#run-local-tests-with-your-integration-file)
     + [Creating local test methods](#creating-local-test-methods)
   * [Simulate transfer hooks](#simulate-transfer-hooks)
+  * [Running non-interactively](#running-non-interactively)
   * [Configuration File](#configuration-file)
 ## Contents
  * [Overview](#overview)
@@ -16,6 +17,7 @@ It is recommended to start with a new integration project.  If you have not done
  * [Run local tests with your integration file](#run-local-tests-with-your-integration-file)
    + [Creating local test methods](#creating-local-test-methods)
  * [Simulate transfer hooks](#simulate-transfer-hooks)
+ * [Running non-interactively](#running-non-interactively)
  * [Configuration File](#configuration-file)
 
 ## Overview
@@ -70,6 +72,17 @@ Direction           The direction of the transfer you are requesting. This value
                     FROM (for data being transferred from iPaaS).
 ```
 All parameters must be in the order specified above and must be enclosed in double quotes. Embedded quotes inside a parameter should be slash-escaped (e.g. "{\"ITEM_NO\":\"ADM-TL2\"}").
+## Running non-interactively
+Every command can also be passed as arguments when starting the utility. The command runs once and the utility exits. This is the mode to use from scripts, CI pipelines, and agent-driven builds:
+```
+IntegrationDevelopmentUtility UPLOAD 123 "C:\path\to\MyIntegration.dll"
+IntegrationDevelopmentUtility HOOK "186" "customer/updated" "1001" "FROM"
+dotnet run -- UPLOAD 123 "C:\path\to\MyIntegration.dll"
+```
+In this mode:
+* Standard input does not need to be a terminal. It may be redirected, piped, or closed. The Escape key normally cancels a running UPLOAD or HOOK; when there is no interactive console that option is unavailable and the command runs until it completes or the log listener times out.
+* The exit code is 0 on success and 1 when the command failed, so a calling script can detect failure without parsing the output.
+* Put `username` and `password` in the configuration file or user secrets. The utility cannot prompt for them when input is redirected.
 ## Configuration File
 The file appsettings.json contains several settings that you will want to configure prior to running the integration helper tool.
 * `username` and `password` - Your iPaaS login. These fields are optional and if not specified, you will be prompted for them when the program is run. These settings will determine which systems you have access to and what operations you will be allowed to perform.
